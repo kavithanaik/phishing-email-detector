@@ -1,763 +1,419 @@
-from flask import Flask, request, render_template_string
-import joblib
-import re
+from flask import Flask, render_template, request, jsonify
+import pickle
 import os
+import re
 
-
-# ==========================================
-# CREATE FLASK APPLICATION
-# ==========================================
 
 app = Flask(__name__)
 
 
-# ==========================================
-# FIND PROJECT FOLDER
-# ==========================================
-
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
+MODEL_FILE = "model/model.pkl"
+VECTORIZER_FILE = "model/vectorizer.pkl"
+METRICS_FILE = "model/metrics.pkl"
 
 
-# ==========================================
-# LOAD MACHINE LEARNING MODEL
-# ==========================================
+# ---------------------------------------------------------
+# LOAD MODEL
+# ---------------------------------------------------------
 
-MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "model.pkl"
-)
+try:
+
+    with open(MODEL_FILE, "rb") as f:
+        model = pickle.load(f)
+
+    with open(VECTORIZER_FILE, "rb") as f:
+        vectorizer = pickle.load(f)
+
+    with open(METRICS_FILE, "rb") as f:
+        metrics = pickle.load(f)
+
+    MODEL_LOADED = True
+
+except Exception as e:
+
+    print("Model loading error:", e)
+
+    model = None
+    vectorizer = None
+    metrics = {}
+
+    MODEL_LOADED = False
 
 
-model, vectorizer = joblib.load(
-    MODEL_PATH
-)
-
-
-# ==========================================
+# ---------------------------------------------------------
 # SUSPICIOUS KEYWORDS
-# ==========================================
+# ---------------------------------------------------------
 
-suspicious_keywords = [
-    "urgent",
-    "verify",
-    "password",
-    "account",
-    "suspended",
-    "click",
-    "login",
-    "winner",
-    "prize",
-    "bank",
-    "security",
-    "confirm",
-    "update",
-    "blocked",
-    "expire"
+PHISHING_KEYWORDS = [
+    "verify your account",
+    "verify your identity",
+    "verify your password",
+    "confirm your password",
+    "confirm your identity",
+    "account suspended",
+    "account will be suspended",
+    "account has been suspended",
+    "account will be closed",
+    "account has been compromised",
+    "unusual activity",
+    "suspicious activity",
+    "security alert",
+    "urgent action",
+    "immediate action",
+    "act immediately",
+    "click here immediately",
+    "click the link",
+    "reset your password",
+    "update your payment",
+    "update billing information",
+    "claim your reward",
+    "claim your prize",
+    "you have won",
+    "lottery winner",
+    "cash reward",
+    "provide your credentials",
+    "confirm your credentials",
+    "bank information",
+    "password immediately"
 ]
 
 
-# ==========================================
-# WEBSITE HTML + CSS
-# ==========================================
+# ---------------------------------------------------------
+# TEXT CLEANING
+# ---------------------------------------------------------
 
-HTML = """
+def clean_text(text):
 
-<!DOCTYPE html>
+    text = str(text).lower()
 
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>
-        Phishing Email Detector
-    </title>
-
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-
-        body {
-
-            margin: 0;
-
-            font-family: Arial, sans-serif;
-
-            background: #f1f5f9;
-
-            color: #1e293b;
-
-        }
-
-
-        /* =========================
-           NAVIGATION
-        ========================= */
-
-        nav {
-
-            background: #172554;
-
-            color: white;
-
-            padding: 20px 8%;
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-        }
-
-
-        nav h2 {
-
-            margin: 0;
-
-        }
-
-
-        nav span {
-
-            font-size: 14px;
-
-            opacity: 0.9;
-
-        }
-
-
-        /* =========================
-           MAIN CONTAINER
-        ========================= */
-
-        .container {
-
-            max-width: 900px;
-
-            margin: 50px auto;
-
-            padding: 20px;
-
-        }
-
-
-        /* =========================
-           CARD
-        ========================= */
-
-        .card {
-
-            background: white;
-
-            padding: 35px;
-
-            border-radius: 15px;
-
-            box-shadow:
-                0 5px 20px
-                rgba(0, 0, 0, 0.10);
-
-        }
-
-
-        /* =========================
-           HEADING
-        ========================= */
-
-        h1 {
-
-            text-align: center;
-
-            color: #172554;
-
-            margin-bottom: 10px;
-
-        }
-
-
-        .description {
-
-            text-align: center;
-
-            color: #64748b;
-
-            margin-bottom: 30px;
-
-        }
-
-
-        /* =========================
-           TEXT AREA
-        ========================= */
-
-        textarea {
-
-            width: 100%;
-
-            height: 250px;
-
-            padding: 15px;
-
-            border: 1px solid #cbd5e1;
-
-            border-radius: 10px;
-
-            font-size: 16px;
-
-            resize: vertical;
-
-            outline: none;
-
-        }
-
-
-        textarea:focus {
-
-            border-color: #2563eb;
-
-        }
-
-
-        /* =========================
-           BUTTON
-        ========================= */
-
-        button {
-
-            width: 100%;
-
-            margin-top: 20px;
-
-            padding: 15px;
-
-            border: none;
-
-            border-radius: 10px;
-
-            background: #2563eb;
-
-            color: white;
-
-            font-size: 18px;
-
-            cursor: pointer;
-
-        }
-
-
-        button:hover {
-
-            background: #1d4ed8;
-
-        }
-
-
-        /* =========================
-           RESULT
-        ========================= */
-
-        .result {
-
-            margin-top: 30px;
-
-            padding: 25px;
-
-            border-radius: 12px;
-
-        }
-
-
-        .phishing {
-
-            background: #fee2e2;
-
-            border-left: 6px solid #dc2626;
-
-        }
-
-
-        .safe {
-
-            background: #dcfce7;
-
-            border-left: 6px solid #16a34a;
-
-        }
-
-
-        .phishing h2 {
-
-            color: #dc2626;
-
-        }
-
-
-        .safe h2 {
-
-            color: #16a34a;
-
-        }
-
-
-        .section {
-
-            margin-top: 25px;
-
-        }
-
-
-        .section h3 {
-
-            margin-bottom: 10px;
-
-        }
-
-
-        li {
-
-            margin: 8px 0;
-
-            word-break: break-word;
-
-        }
-
-
-        .confidence {
-
-            font-size: 18px;
-
-            font-weight: bold;
-
-        }
-
-
-        /* =========================
-           FOOTER
-        ========================= */
-
-        footer {
-
-            text-align: center;
-
-            margin-top: 30px;
-
-            color: #64748b;
-
-            font-size: 14px;
-
-        }
-
-
-        /* =========================
-           MOBILE
-        ========================= */
-
-        @media (max-width: 600px) {
-
-            nav {
-
-                padding: 18px;
-
-            }
-
-
-            nav h2 {
-
-                font-size: 18px;
-
-            }
-
-
-            .container {
-
-                margin: 20px auto;
-
-                padding: 15px;
-
-            }
-
-
-            .card {
-
-                padding: 20px;
-
-            }
-
-
-            h1 {
-
-                font-size: 28px;
-
-            }
-
-        }
-
-    </style>
-
-</head>
-
-
-<body>
-
-
-    <!-- =========================
-         NAVIGATION
-    ========================= -->
-
-    <nav>
-
-        <h2>
-            🛡️ Phishing Detector
-        </h2>
-
-        <span>
-            Machine Learning
-        </span>
-
-    </nav>
-
-
-    <!-- =========================
-         MAIN CONTENT
-    ========================= -->
-
-    <div class="container">
-
-        <div class="card">
-
-
-            <h1>
-                📧 Phishing Email Detection
-            </h1>
-
-
-            <p class="description">
-
-                Paste an email below and our
-                machine learning model will
-                classify it as Phishing or Safe.
-
-            </p>
-
-
-            <!-- =====================
-                 EMAIL FORM
-            ====================== -->
-
-            <form method="POST">
-
-
-                <textarea
-                    name="email"
-                    placeholder="Paste email content here..."
-                    required>{{ email }}</textarea>
-
-
-                <button type="submit">
-
-                    🔍 Analyze Email
-
-                </button>
-
-
-            </form>
-
-
-            <!-- =====================
-                 RESULT
-            ====================== -->
-
-            {% if result %}
-
-
-            <div class="result
-
-                {% if result == 'Phishing' %}
-
-                    phishing
-
-                {% else %}
-
-                    safe
-
-                {% endif %}
-
-            ">
-
-
-                <!-- Prediction -->
-
-                {% if result == "Phishing" %}
-
-                    <h2>
-                        🔴 PHISHING EMAIL
-                    </h2>
-
-                {% else %}
-
-                    <h2>
-                        🟢 SAFE EMAIL
-                    </h2>
-
-                {% endif %}
-
-
-                <p>
-
-                    <strong>
-                        Prediction:
-                    </strong>
-
-                    {{ result }}
-
-                </p>
-
-
-                <p class="confidence">
-
-                    Confidence:
-                    {{ confidence }}%
-
-                </p>
-
-
-                <!-- =====================
-                     URL SECTION
-                ====================== -->
-
-                <div class="section">
-
-                    <h3>
-                        🔗 URLs Detected
-                    </h3>
-
-
-                    {% if urls %}
-
-                        <ul>
-
-                        {% for url in urls %}
-
-                            <li>
-                                {{ url }}
-                            </li>
-
-                        {% endfor %}
-
-                        </ul>
-
-                    {% else %}
-
-                        <p>
-                            No URLs detected.
-                        </p>
-
-                    {% endif %}
-
-                </div>
-
-
-                <!-- =====================
-                     KEYWORDS
-                ====================== -->
-
-                <div class="section">
-
-                    <h3>
-                        ⚠️ Suspicious Keywords
-                    </h3>
-
-
-                    {% if keywords %}
-
-                        <ul>
-
-                        {% for word in keywords %}
-
-                            <li>
-                                {{ word }}
-                            </li>
-
-                        {% endfor %}
-
-                        </ul>
-
-                    {% else %}
-
-                        <p>
-                            No suspicious keywords detected.
-                        </p>
-
-                    {% endif %}
-
-                </div>
-
-
-            </div>
-
-
-            {% endif %}
-
-
-        </div>
-
-
-        <footer>
-
-            Phishing Email Detection System
-            using Machine Learning
-
-        </footer>
-
-
-    </div>
-
-
-</body>
-
-</html>
-
-"""
-
-
-# ==========================================
-# HOME PAGE
-# ==========================================
-
-@app.route("/", methods=["GET", "POST"])
-def home():
-
-    result = None
-
-    confidence = None
-
-    urls = []
-
-    keywords = []
-
-    email = ""
-
-
-    # ======================================
-    # WHEN USER SUBMITS EMAIL
-    # ======================================
-
-    if request.method == "POST":
-
-        email = request.form.get(
-            "email",
-            ""
-        )
-
-
-        # ----------------------------------
-        # CHECK EMPTY EMAIL
-        # ----------------------------------
-
-        if not email.strip():
-
-            return render_template_string(
-                HTML,
-                result=None,
-                confidence=None,
-                urls=[],
-                keywords=[],
-                email=""
-            )
-
-
-        # ----------------------------------
-        # CONVERT EMAIL TO TF-IDF
-        # ----------------------------------
-
-        email_vector = vectorizer.transform(
-            [email]
-        )
-
-
-        # ----------------------------------
-        # MACHINE LEARNING PREDICTION
-        # ----------------------------------
-
-        result = model.predict(
-            email_vector
-        )[0]
-
-
-        # ----------------------------------
-        # CONFIDENCE
-        # ----------------------------------
-
-        probabilities = model.predict_proba(
-            email_vector
-        )[0]
-
-
-        confidence = round(
-            max(probabilities) * 100,
-            2
-        )
-
-
-        # ----------------------------------
-        # FIND URLs
-        # ----------------------------------
-
-        urls = re.findall(
-            r'https?://\S+|www\.\S+',
-            email
-        )
-
-
-        # ----------------------------------
-        # FIND SUSPICIOUS KEYWORDS
-        # ----------------------------------
-
-        email_lower = email.lower()
-
-
-        for word in suspicious_keywords:
-
-            if word in email_lower:
-
-                keywords.append(word)
-
-
-    # ======================================
-    # DISPLAY WEBSITE
-    # ======================================
-
-    return render_template_string(
-
-        HTML,
-
-        result=result,
-
-        confidence=confidence,
-
-        urls=urls,
-
-        keywords=keywords,
-
-        email=email
-
+    text = re.sub(
+        r"https?://\S+|www\.\S+",
+        " URL ",
+        text
     )
 
+    text = re.sub(
+        r"\b[\w\.-]+@[\w\.-]+\.\w+\b",
+        " EMAIL ",
+        text
+    )
 
-# ==========================================
-# START FLASK SERVER
-# ==========================================
+    text = re.sub(r"\s+", " ", text)
+
+    return text.strip()
+
+
+# ---------------------------------------------------------
+# URL ANALYSIS
+# ---------------------------------------------------------
+
+def analyze_urls(text):
+
+    urls = re.findall(
+        r"https?://[^\s]+|www\.[^\s]+",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    suspicious_urls = []
+
+    suspicious_domains = [
+        "bit.ly",
+        "tinyurl.com",
+        "t.co",
+        "goo.gl",
+        "is.gd",
+        "ow.ly"
+    ]
+
+    for url in urls:
+
+        url_lower = url.lower()
+
+        for domain in suspicious_domains:
+
+            if domain in url_lower:
+
+                suspicious_urls.append(url)
+                break
+
+    return urls, suspicious_urls
+
+
+# ---------------------------------------------------------
+# KEYWORD ANALYSIS
+# ---------------------------------------------------------
+
+def analyze_keywords(text):
+
+    text_lower = text.lower()
+
+    found = []
+
+    for keyword in PHISHING_KEYWORDS:
+
+        if keyword in text_lower:
+
+            found.append(keyword)
+
+    return list(dict.fromkeys(found))
+
+
+# ---------------------------------------------------------
+# MAIN ANALYSIS
+# ---------------------------------------------------------
+
+def analyze_email(email):
+
+    if not MODEL_LOADED:
+
+        return {
+            "success": False,
+            "error": "Model is not loaded. Run train_model.py first."
+        }
+
+    if not email or not email.strip():
+
+        return {
+            "success": False,
+            "error": "Please enter an email."
+        }
+
+    cleaned = clean_text(email)
+
+    # -----------------------------------------------
+    # ML MODEL
+    # -----------------------------------------------
+
+    vectorized = vectorizer.transform([cleaned])
+
+    prediction = model.predict(vectorized)[0]
+
+    probabilities = model.predict_proba(vectorized)[0]
+
+    classes = list(model.classes_)
+
+    probability_map = {
+        classes[i]: float(probabilities[i])
+        for i in range(len(classes))
+    }
+
+    ml_phishing_probability = probability_map.get(
+        "Phishing",
+        0
+    )
+
+    ml_safe_probability = probability_map.get(
+        "Safe",
+        0
+    )
+
+    # -----------------------------------------------
+    # ADDITIONAL ANALYSIS
+    # -----------------------------------------------
+
+    urls, suspicious_urls = analyze_urls(email)
+
+    keywords = analyze_keywords(email)
+
+    # -----------------------------------------------
+    # FINAL DECISION
+    #
+    # ML remains the main classifier.
+    # Additional indicators are used only when
+    # the ML result is uncertain.
+    # -----------------------------------------------
+
+    final_prediction = prediction
+
+    reasons = []
+
+    # Strong phishing signals
+    strong_phishing = (
+        len(suspicious_urls) > 0
+        or len(keywords) >= 2
+    )
+
+    # If model is uncertain and there are strong
+    # phishing indicators, classify as phishing.
+    if (
+        prediction == "Safe"
+        and ml_phishing_probability >= 0.40
+        and strong_phishing
+    ):
+        final_prediction = "Phishing"
+
+    # If the ML model is strongly confident that
+    # the email is safe, do not override it merely
+    # because one common word appears.
+    elif (
+        prediction == "Phishing"
+        and ml_phishing_probability < 0.60
+        and not strong_phishing
+    ):
+        final_prediction = "Safe"
+
+    # -----------------------------------------------
+    # REASONS
+    # -----------------------------------------------
+
+    if suspicious_urls:
+
+        reasons.append(
+            "Suspicious shortened URL detected."
+        )
+
+    if urls and not suspicious_urls:
+
+        reasons.append(
+            f"{len(urls)} URL(s) detected in the email."
+        )
+
+    if keywords:
+
+        if len(keywords) == 1:
+
+            reasons.append(
+                f"Suspicious phrase detected: '{keywords[0]}'."
+            )
+
+        else:
+
+            reasons.append(
+                f"{len(keywords)} suspicious phrases detected."
+            )
+
+    if final_prediction == "Phishing":
+
+        if not reasons:
+
+            reasons.append(
+                "The machine-learning model detected phishing-like language patterns."
+            )
+
+    else:
+
+        if not reasons:
+
+            reasons.append(
+                "No strong phishing indicators were detected."
+            )
+
+    # -----------------------------------------------
+    # CONFIDENCE
+    # -----------------------------------------------
+
+    confidence = max(
+        ml_phishing_probability,
+        ml_safe_probability
+    ) * 100
+
+    return {
+
+        "success": True,
+
+        "prediction": final_prediction,
+
+        "confidence": round(confidence, 2),
+
+        "phishing_probability": round(
+            ml_phishing_probability * 100,
+            2
+        ),
+
+        "safe_probability": round(
+            ml_safe_probability * 100,
+            2
+        ),
+
+        "urls_found": len(urls),
+
+        "suspicious_urls": suspicious_urls,
+
+        "suspicious_keywords": keywords,
+
+        "reasons": reasons
+    }
+
+
+# ---------------------------------------------------------
+# HOME PAGE
+# ---------------------------------------------------------
+
+@app.route("/")
+def home():
+
+    return render_template("index.html")
+
+
+# ---------------------------------------------------------
+# ANALYZE API
+# ---------------------------------------------------------
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+
+    try:
+
+        data = request.get_json()
+
+        if not data:
+
+            return jsonify({
+                "success": False,
+                "error": "No data received."
+            }), 400
+
+        email = data.get("email", "")
+
+        result = analyze_email(email)
+
+        return jsonify(result)
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# ---------------------------------------------------------
+# METRICS API
+# ---------------------------------------------------------
+
+@app.route("/metrics")
+def get_metrics():
+
+    if not MODEL_LOADED:
+
+        return jsonify({
+            "success": False,
+            "error": "Model is not trained."
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "metrics": metrics
+    })
+
+
+# ---------------------------------------------------------
+# HEALTH CHECK
+# ---------------------------------------------------------
+
+@app.route("/health")
+def health():
+
+    return jsonify({
+        "status": "running",
+        "model_loaded": MODEL_LOADED
+    })
+
+
+# ---------------------------------------------------------
+# RUN
+# ---------------------------------------------------------
 
 if __name__ == "__main__":
 

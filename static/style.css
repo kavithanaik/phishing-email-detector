@@ -1,0 +1,246 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #222;
+    padding: 30px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #666;
+    font-size: 17px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+    margin-bottom: 20px;
+}
+
+.card h3 {
+    margin-top: 25px;
+    margin-bottom: 12px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+button {
+    margin-top: 15px;
+    padding: 13px 25px;
+    border: none;
+    border-radius: 7px;
+    background: #1d4ed8;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #153ea8;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none;
+}
+
+.loading {
+    margin-top: 15px;
+    color: #555;
+}
+
+.result {
+    margin-bottom: 20px;
+}
+
+.danger-result,
+.safe-result,
+.error-result {
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.danger-result {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+}
+
+.safe-result {
+    background: #dcfce7;
+    border: 1px solid #22c55e;
+}
+
+.error-result {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+}
+
+.result-icon {
+    font-size: 35px;
+}
+
+.probability-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.probability-container > div {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.probability-container span {
+    display: block;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.probability-container strong {
+    font-size: 25px;
+}
+
+.metrics-grid,
+.dataset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.dataset-grid {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.metric,
+.dataset-grid > div {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.metric span,
+.dataset-grid span {
+    display: block;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.metric strong,
+.dataset-grid strong {
+    font-size: 25px;
+}
+
+.confusion {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.confusion th,
+.confusion td {
+    border: 1px solid #ccc;
+    padding: 15px;
+    text-align: center;
+}
+
+.confusion th {
+    background: #f1f5f9;
+}
+
+.tag {
+    display: inline-block;
+    padding: 7px 10px;
+    margin: 4px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.danger-tag {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.safe-tag {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.url-item {
+    background: #fee2e2;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 6px;
+    word-break: break-all;
+}
+
+@media (max-width: 800px) {
+
+    .metrics-grid,
+    .dataset-grid,
+    .probability-container {
+        grid-template-columns: 1fr 1fr;
+    }
+
+}
+
+@media (max-width: 500px) {
+
+    body {
+        padding: 15px;
+    }
+
+    .metrics-grid,
+    .dataset-grid,
+    .probability-container {
+        grid-template-columns: 1fr;
+    }
+
+    header h1 {
+        font-size: 28px;
+    }
+
+}

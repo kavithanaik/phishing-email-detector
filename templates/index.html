@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Phishing Email Detector</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+
+        <h1>Phishing Email Detector</h1>
+
+        <p>
+            Machine Learning Based Email Security Analysis
+        </p>
+
+    </header>
+
+
+    <!-- EMAIL ANALYZER -->
+
+    <section class="card">
+
+        <h2>Analyze Email</h2>
+
+        <textarea
+            id="emailText"
+            placeholder="Paste the complete email here..."
+        ></textarea>
+
+        <button
+            id="analyzeButton"
+            onclick="analyzeEmail()">
+
+            Analyze Email
+
+        </button>
+
+        <div id="loading"
+             class="loading hidden">
+
+            Analyzing email...
+
+        </div>
+
+    </section>
+
+
+    <!-- RESULT -->
+
+    <section
+        id="resultCard"
+        class="card hidden">
+
+        <h2>Analysis Result</h2>
+
+        <div
+            id="result"
+            class="result">
+
+        </div>
+
+
+        <div class="probability-container">
+
+            <div>
+
+                <span>Phishing Probability</span>
+
+                <strong id="phishingProbability">
+                    0%
+                </strong>
+
+            </div>
+
+            <div>
+
+                <span>Safe Probability</span>
+
+                <strong id="safeProbability">
+                    0%
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <h3>Detection Reasons</h3>
+
+        <ul id="reasons"></ul>
+
+
+        <h3>Suspicious Keywords</h3>
+
+        <div id="keywords"></div>
+
+
+        <h3>URLs Found</h3>
+
+        <div id="urls"></div>
+
+    </section>
+
+
+    <!-- MODEL PERFORMANCE -->
+
+    <section class="card">
+
+        <h2>Model Performance</h2>
+
+        <div class="metrics-grid">
+
+            <div class="metric">
+
+                <span>Accuracy</span>
+
+                <strong id="accuracy">--</strong>
+
+            </div>
+
+            <div class="metric">
+
+                <span>Precision</span>
+
+                <strong id="precision">--</strong>
+
+            </div>
+
+            <div class="metric">
+
+                <span>Recall</span>
+
+                <strong id="recall">--</strong>
+
+            </div>
+
+            <div class="metric">
+
+                <span>F1 Score</span>
+
+                <strong id="f1">--</strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CONFUSION MATRIX -->
+
+    <section class="card">
+
+        <h2>Confusion Matrix</h2>
+
+        <p>
+            Rows = Actual Class |
+            Columns = Predicted Class
+        </p>
+
+        <table class="confusion">
+
+            <tr>
+
+                <th></th>
+
+                <th>Predicted Safe</th>
+
+                <th>Predicted Phishing</th>
+
+            </tr>
+
+            <tr>
+
+                <th>Actual Safe</th>
+
+                <td id="cm00">--</td>
+
+                <td id="cm01">--</td>
+
+            </tr>
+
+            <tr>
+
+                <th>Actual Phishing</th>
+
+                <td id="cm10">--</td>
+
+                <td id="cm11">--</td>
+
+            </tr>
+
+        </table>
+
+    </section>
+
+
+    <!-- DATASET -->
+
+    <section class="card">
+
+        <h2>Dataset Information</h2>
+
+        <div class="dataset-grid">
+
+            <div>
+
+                <span>Total Emails</span>
+
+                <strong id="totalEmails">--</strong>
+
+            </div>
+
+            <div>
+
+                <span>Phishing Emails</span>
+
+                <strong id="phishingEmails">--</strong>
+
+            </div>
+
+            <div>
+
+                <span>Safe Emails</span>
+
+                <strong id="safeEmails">--</strong>
+
+            </div>
+
+            <div>
+
+                <span>Training Emails</span>
+
+                <strong id="trainingEmails">--</strong>
+
+            </div>
+
+            <div>
+
+                <span>Testing Emails</span>
+
+                <strong id="testingEmails">--</strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+
+</html>
