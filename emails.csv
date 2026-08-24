@@ -1,0 +1,21 @@
+text,label
+"URGENT! Your account will be suspended. Verify your password immediately.",Phishing
+"Click here to update your bank account information.",Phishing
+"Congratulations! You have won a prize. Click here to claim it.",Phishing
+"Your account has been compromised. Login immediately.",Phishing
+"Your password will expire today. Click here to reset it.",Phishing
+"Important security alert. Verify your account immediately.",Phishing
+"Your bank account is blocked. Click here to unlock it.",Phishing
+"Congratulations! You are a winner. Claim your prize now.",Phishing
+"Urgent action required. Send your account information.",Phishing
+"Click this link to verify your identity immediately.",Phishing
+"Hello, I wanted to remind you about our meeting tomorrow.",Safe
+"Please find attached the project report for your review.",Safe
+"Thank you for your email. I will get back to you soon.",Safe
+"Your order has been successfully delivered.",Safe
+"Hi, can we schedule a meeting for tomorrow?",Safe
+"The project presentation has been moved to Friday.",Safe
+"Please review the attached document.",Safe
+"Your monthly statement is now available.",Safe
+"Thank you for submitting the assignment.",Safe
+"Your appointment is confirmed for Monday.",Safe
