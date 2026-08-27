@@ -1,14 +1,18 @@
 import re
 import joblib
-
 from scipy.sparse import hstack, csr_matrix
+
+
+# ============================================================
+# MODEL PATH
+# ============================================================
+
+MODEL_PATH = "model/model.pkl"
 
 
 # ============================================================
 # LOAD MODEL
 # ============================================================
-
-MODEL_PATH = "model/model.pkl"
 
 data = joblib.load(MODEL_PATH)
 
@@ -19,15 +23,19 @@ word_vectorizer = data["word_vectorizer"]
 char_vectorizer = data["char_vectorizer"]
 
 
+print("=" * 70)
+print("        PHISHING EMAIL DETECTOR - MODEL TEST")
+print("=" * 70)
+
+
 # ============================================================
 # SECURITY FEATURES
+# MUST MATCH train_model.py EXACTLY
 # ============================================================
 
 def security_features(text):
 
     text = str(text)
-
-    lower = text.lower()
 
     urls = re.findall(
         r'https?://[^\s<>"\']+|www\.[^\s<>"\']+',
@@ -37,10 +45,11 @@ def security_features(text):
 
     url_count = len(urls)
 
+    suspicious_url_count = 0
+
     suspicious_words = [
         "login",
         "verify",
-        "verification",
         "secure",
         "account",
         "update",
@@ -51,12 +60,8 @@ def security_features(text):
         "wallet",
         "reward",
         "claim",
-        "security",
-        "unlock",
-        "signin"
+        "security"
     ]
-
-    suspicious_url_count = 0
 
     for url in urls:
 
@@ -76,15 +81,13 @@ def security_features(text):
         ):
             ip_url_count += 1
 
-    email_length = len(text)
+    length = len(text)
 
     exclamation_count = text.count("!")
 
-    question_count = text.count("?")
-
     digit_count = sum(
-        c.isdigit()
-        for c in text
+        character.isdigit()
+        for character in text
     )
 
     special_count = len(
@@ -94,157 +97,94 @@ def security_features(text):
         )
     )
 
-    uppercase_words = sum(
-
+    uppercase_count = sum(
         1
-
         for word in text.split()
-
-        if len(word) >= 3
-        and word.isupper()
-
+        if len(word) > 2 and word.isupper()
     )
 
-    phishing_keywords = [
-
-        "urgent",
-        "immediately",
-        "action required",
-        "final warning",
-        "verify",
-        "verification",
-        "suspended",
-        "suspension",
-        "password",
-        "account",
-        "click",
-        "winner",
-        "prize",
-        "claim",
-        "security alert",
-        "unauthorized",
-        "transaction",
-        "blocked",
-        "limited",
-        "confirm",
-        "payment",
-        "refund",
-        "bank",
-        "login",
-        "sign in",
-        "unlock",
-        "expire",
-        "expired",
-        "24 hours",
-        "kyc",
-        "credit card",
-        "billing",
-        "credentials"
-
-    ]
-
-    keyword_count = sum(
-
-        lower.count(keyword)
-
-        for keyword in phishing_keywords
-
-    )
-
-    sensitive_words = [
-
-        "enter your password",
-        "enter your username",
-        "provide your password",
-        "bank details",
-        "credit card details",
-        "card number",
-        "login credentials",
-        "verify your identity",
-        "confirm your account",
-        "update your payment",
-        "submit your information"
-
-    ]
-
-    sensitive_count = sum(
-
-        lower.count(word)
-        for word in sensitive_words
-
-    )
-
-    urgency_words = [
-
-        "urgent",
-        "immediately",
-        "now",
-        "as soon as possible",
-        "within 24 hours",
-        "final warning",
-        "last chance",
-        "action required"
-
-    ]
-
-    urgency_count = sum(
-
-        lower.count(word)
-        for word in urgency_words
-
+    suspicious_keyword_count = sum(
+        text.lower().count(keyword)
+        for keyword in [
+            "urgent",
+            "immediately",
+            "verify",
+            "suspended",
+            "password",
+            "account",
+            "click",
+            "winner",
+            "prize",
+            "claim",
+            "security",
+            "blocked",
+            "limited",
+            "confirm",
+            "payment",
+            "refund"
+        ]
     )
 
     return [
-
         url_count,
         suspicious_url_count,
         ip_url_count,
-        email_length,
+        length,
         exclamation_count,
-        question_count,
         digit_count,
         special_count,
-        uppercase_words,
-        keyword_count,
-        sensitive_count,
-        urgency_count
-
+        uppercase_count,
+        suspicious_keyword_count
     ]
 
 
 # ============================================================
-# PREDICT FUNCTION
+# PREDICT EMAIL
 # ============================================================
 
 def predict_email(email):
 
-    # Word features
+    # Word TF-IDF
     word_features = word_vectorizer.transform(
         [email]
     )
 
-    # Character features
+    # Character TF-IDF
     char_features = char_vectorizer.transform(
         [email]
     )
 
     # Security features
-    sec = security_features(email)
+    security = csr_matrix([
+        security_features(email)
+    ])
 
-    security_matrix = csr_matrix(
-        [sec]
+    # Combine EXACTLY like train_model.py
+    features = hstack([
+        word_features,
+        char_features,
+        security
+    ]).tocsr()
+
+    print("\nFeature count:", features.shape[1])
+
+    # Model expected features
+    expected_features = model.calibrated_classifiers_[0].estimator.n_features_in_
+
+    print(
+        "Model expected:",
+        expected_features
     )
 
-    # Combine
-    features = hstack([
+    # Safety check
+    if features.shape[1] != expected_features:
 
-        word_features,
-
-        char_features,
-
-        security_matrix
-
-    ])
+        raise ValueError(
+            f"Feature mismatch! "
+            f"Test created {features.shape[1]} "
+            f"features but model expects "
+            f"{expected_features}."
+        )
 
     # Prediction
     prediction = model.predict(
@@ -257,29 +197,25 @@ def predict_email(email):
 
     classes = model.classes_
 
-    probability_dict = {
+    probability_data = {}
 
-        cls: float(prob)
+    for class_name, probability in zip(
+        classes,
+        probabilities
+    ):
 
-        for cls, prob in zip(
-            classes,
-            probabilities
-        )
+        probability_data[
+            class_name
+        ] = float(probability) * 100
 
-    }
-
-    phishing = (
-        probability_dict.get(
-            "Phishing",
-            0
-        ) * 100
+    phishing = probability_data.get(
+        "Phishing",
+        0
     )
 
-    safe = (
-        probability_dict.get(
-            "Safe",
-            0
-        ) * 100
+    safe = probability_data.get(
+        "Safe",
+        0
     )
 
     confidence = max(
@@ -318,12 +254,11 @@ Bank Security Team
 """
 
 
-print()
+print("\n")
 print("=" * 70)
 print("PHISHING EMAIL")
 print("=" * 70)
 
-print()
 print(phishing_email)
 
 prediction, phishing, safe, confidence = predict_email(
@@ -333,7 +268,7 @@ prediction, phishing, safe, confidence = predict_email(
 print("-" * 70)
 
 print(
-    "Prediction:",
+    "\nPrediction:",
     prediction
 )
 
@@ -371,12 +306,11 @@ Project Coordinator
 """
 
 
-print()
+print("\n")
 print("=" * 70)
 print("SAFE EMAIL")
 print("=" * 70)
 
-print()
 print(safe_email)
 
 prediction, phishing, safe, confidence = predict_email(
@@ -386,7 +320,7 @@ prediction, phishing, safe, confidence = predict_email(
 print("-" * 70)
 
 print(
-    "Prediction:",
+    "\nPrediction:",
     prediction
 )
 
