@@ -1,412 +1,408 @@
-// ======================================================
-// PHISHING EMAIL DETECTOR - JAVASCRIPT
-// ======================================================
+document.addEventListener("DOMContentLoaded", () => {
+
+    const emailInput = document.getElementById("emailText");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const loading = document.getElementById("loading");
+    const result = document.getElementById("result");
+    const error = document.getElementById("error");
 
 
-// ------------------------------------------------------
-// ANALYZE EMAIL
-// ------------------------------------------------------
+    // -------------------------------------------------------
+    // Helper
+    // -------------------------------------------------------
 
-async function analyzeEmail() {
+    function setText(id, value) {
 
-    const emailText =
-        document.getElementById("emailText").value.trim();
+        const element = document.getElementById(id);
 
-    const resultCard =
-        document.getElementById("resultCard");
-
-    const result =
-        document.getElementById("result");
-
-    const loading =
-        document.getElementById("loading");
-
-    const button =
-        document.getElementById("analyzeButton");
-
-
-    // Check empty email
-
-    if (!emailText) {
-
-        alert("Please enter an email first.");
-
-        return;
+        if (element) {
+            element.textContent = value;
+        }
     }
 
 
-    // Show loading
+    function percent(value) {
 
-    loading.classList.remove("hidden");
+        const number = Number(value);
 
-    button.disabled = true;
-
-    resultCard.classList.add("hidden");
-
-
-    try {
-
-        const response = await fetch("/analyze", {
-
-            method: "POST",
-
-            headers: {
-
-                "Content-Type": "application/json"
-
-            },
-
-            body: JSON.stringify({
-
-                email: emailText
-
-            })
-
-        });
-
-
-        const data = await response.json();
-
-
-        if (!response.ok || !data.success) {
-
-            throw new Error(
-                data.error || "Unable to analyze email."
-            );
-
+        if (isNaN(number)) {
+            return "0.00%";
         }
 
-
-        // ----------------------------------------------
-        // RESULT
-        // ----------------------------------------------
-
-        resultCard.classList.remove("hidden");
-
-
-        if (data.prediction === "Phishing") {
-
-            result.innerHTML = `
-                <div class="danger-result">
-                    <span class="result-icon">⚠</span>
-                    <div>
-                        <h2>PHISHING EMAIL</h2>
-                        <p>
-                            This email contains patterns
-                            associated with phishing.
-                        </p>
-                    </div>
-                </div>
-            `;
-
-        } else {
-
-            result.innerHTML = `
-                <div class="safe-result">
-                    <span class="result-icon">✓</span>
-                    <div>
-                        <h2>SAFE EMAIL</h2>
-                        <p>
-                            No strong phishing indicators
-                            were detected.
-                        </p>
-                    </div>
-                </div>
-            `;
-        }
-
-
-        // ----------------------------------------------
-        // PROBABILITIES
-        // ----------------------------------------------
-
-        document.getElementById(
-            "phishingProbability"
-        ).textContent =
-            data.phishing_probability + "%";
-
-
-        document.getElementById(
-            "safeProbability"
-        ).textContent =
-            data.safe_probability + "%";
-
-
-        // ----------------------------------------------
-        // REASONS
-        // ----------------------------------------------
-
-        const reasons =
-            document.getElementById("reasons");
-
-        reasons.innerHTML = "";
-
-
-        if (data.reasons.length === 0) {
-
-            reasons.innerHTML =
-                "<li>No suspicious indicators found.</li>";
-
-        } else {
-
-            data.reasons.forEach(reason => {
-
-                const li =
-                    document.createElement("li");
-
-                li.textContent = reason;
-
-                reasons.appendChild(li);
-
-            });
-
-        }
-
-
-        // ----------------------------------------------
-        // KEYWORDS
-        // ----------------------------------------------
-
-        const keywords =
-            document.getElementById("keywords");
-
-        keywords.innerHTML = "";
-
-
-        if (data.suspicious_keywords.length === 0) {
-
-            keywords.innerHTML =
-                "<span class='tag safe-tag'>None detected</span>";
-
-        } else {
-
-            data.suspicious_keywords.forEach(keyword => {
-
-                const span =
-                    document.createElement("span");
-
-                span.className = "tag danger-tag";
-
-                span.textContent = keyword;
-
-                keywords.appendChild(span);
-
-            });
-
-        }
-
-
-        // ----------------------------------------------
-        // URLS
-        // ----------------------------------------------
-
-        const urls =
-            document.getElementById("urls");
-
-        urls.innerHTML = "";
-
-
-        if (data.suspicious_urls.length > 0) {
-
-            data.suspicious_urls.forEach(url => {
-
-                const div =
-                    document.createElement("div");
-
-                div.className = "url-item";
-
-                div.textContent = url;
-
-                urls.appendChild(div);
-
-            });
-
-        } else {
-
-            urls.innerHTML =
-                "<span class='tag safe-tag'>No suspicious URLs</span>";
-
-        }
-
-
-    } catch (error) {
-
-        resultCard.classList.remove("hidden");
-
-        result.innerHTML = `
-            <div class="error-result">
-                <h2>Error</h2>
-                <p>${escapeHtml(error.message)}</p>
-            </div>
-        `;
-
-    } finally {
-
-        loading.classList.add("hidden");
-
-        button.disabled = false;
-
+        return number.toFixed(2) + "%";
     }
-}
 
 
-// ------------------------------------------------------
-// LOAD MODEL METRICS
-// ------------------------------------------------------
+    // -------------------------------------------------------
+    // Analyze
+    // -------------------------------------------------------
 
-async function loadMetrics() {
+    analyzeBtn.addEventListener("click", async () => {
 
-    try {
+        const email = emailInput.value.trim();
 
-        const response =
-            await fetch("/metrics");
-
-        const data =
-            await response.json();
+        error.classList.add("hidden");
 
 
-        if (!data.success) {
+        if (!email) {
 
-            console.error(
-                data.error
-            );
+            error.textContent =
+                "Please enter an email before analyzing.";
+
+            error.classList.remove("hidden");
 
             return;
         }
 
 
-        const m = data.metrics;
+        analyzeBtn.disabled = true;
+
+        loading.classList.remove("hidden");
 
 
-        // ----------------------------------------------
-        // PERFORMANCE
-        // ----------------------------------------------
+        try {
 
-        document.getElementById(
-            "accuracy"
-        ).textContent =
-            m.accuracy + "%";
+            const response = await fetch(
+                "/predict",
+                {
+                    method: "POST",
 
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-        document.getElementById(
-            "precision"
-        ).textContent =
-            m.precision + "%";
-
-
-        document.getElementById(
-            "recall"
-        ).textContent =
-            m.recall + "%";
+                    body: JSON.stringify({
+                        email: email
+                    })
+                }
+            );
 
 
-        document.getElementById(
-            "f1"
-        ).textContent =
-            m.f1 + "%";
+            const data = await response.json();
 
 
-        // ----------------------------------------------
-        // CONFUSION MATRIX
-        // ----------------------------------------------
+            if (!response.ok || !data.success) {
 
-        const cm =
-            m.confusion_matrix;
-
-
-        document.getElementById(
-            "cm00"
-        ).textContent =
-            cm[0][0];
+                throw new Error(
+                    data.error ||
+                    "Prediction failed."
+                );
+            }
 
 
-        document.getElementById(
-            "cm01"
-        ).textContent =
-            cm[0][1];
+            // ------------------------------------------------
+            // Prediction
+            // ------------------------------------------------
+
+            setText(
+                "prediction",
+                data.prediction
+            );
 
 
-        document.getElementById(
-            "cm10"
-        ).textContent =
-            cm[1][0];
+            setText(
+                "confidence",
+                percent(data.confidence)
+            );
 
 
-        document.getElementById(
-            "cm11"
-        ).textContent =
-            cm[1][1];
+            // ------------------------------------------------
+            // Probability
+            // ------------------------------------------------
+
+            setText(
+                "phishingProbability",
+                percent(
+                    data.phishing_probability
+                )
+            );
 
 
-        // ----------------------------------------------
-        // DATASET
-        // ----------------------------------------------
-
-        document.getElementById(
-            "totalEmails"
-        ).textContent =
-            m.total_emails;
+            setText(
+                "safeProbability",
+                percent(
+                    data.safe_probability
+                )
+            );
 
 
-        document.getElementById(
-            "phishingEmails"
-        ).textContent =
-            m.phishing_count;
+            // ------------------------------------------------
+            // Security
+            // ------------------------------------------------
+
+            const security =
+                data.security || {};
 
 
-        document.getElementById(
-            "safeEmails"
-        ).textContent =
-            m.safe_count;
+            setText(
+                "urlsFound",
+                security.urls_found || 0
+            );
 
 
-        document.getElementById(
-            "trainingEmails"
-        ).textContent =
-            m.training_count;
+            setText(
+                "suspiciousUrls",
+                security.suspicious_urls || 0
+            );
 
 
-        document.getElementById(
-            "testingEmails"
-        ).textContent =
-            m.testing_count;
+            setText(
+                "ipUrls",
+                security.ip_urls || 0
+            );
 
 
-    } catch (error) {
-
-        console.error(
-            "Metrics loading error:",
-            error
-        );
-
-    }
-}
+            setText(
+                "emailLength",
+                security.email_length || 0
+            );
 
 
-// ------------------------------------------------------
-// HTML ESCAPE
-// ------------------------------------------------------
-
-function escapeHtml(text) {
-
-    const div =
-        document.createElement("div");
-
-    div.textContent = text;
-
-    return div.innerHTML;
-}
+            setText(
+                "avgUrlLength",
+                Number(
+                    security.avg_url_length || 0
+                ).toFixed(1)
+            );
 
 
-// ------------------------------------------------------
-// LOAD EVERYTHING
-// ------------------------------------------------------
+            setText(
+                "exclamationMarks",
+                security.exclamation_marks || 0
+            );
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
 
-        loadMetrics();
+            setText(
+                "specialCharacters",
+                security.special_characters || 0
+            );
 
-    }
-);
+
+            setText(
+                "digits",
+                security.digits || 0
+            );
+
+
+            // ------------------------------------------------
+            // URLs
+            // ------------------------------------------------
+
+            const urlList =
+                document.getElementById("urlList");
+
+
+            urlList.innerHTML = "";
+
+
+            const urls =
+                security.urls || [];
+
+
+            if (urls.length === 0) {
+
+                urlList.innerHTML =
+                    '<p class="empty-message">' +
+                    'No URLs detected in this email.' +
+                    '</p>';
+
+            } else {
+
+                urls.forEach(url => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className =
+                        "url-item";
+
+                    div.textContent =
+                        url;
+
+                    urlList.appendChild(div);
+
+                });
+
+            }
+
+
+            // ------------------------------------------------
+            // Reasons
+            // ------------------------------------------------
+
+            const reasonsList =
+                document.getElementById("reasons");
+
+
+            reasonsList.innerHTML = "";
+
+
+            const reasons =
+                data.reasons || [];
+
+
+            if (reasons.length === 0) {
+
+                const li =
+                    document.createElement("li");
+
+                li.textContent =
+                    "No major phishing indicators detected.";
+
+                reasonsList.appendChild(li);
+
+            } else {
+
+                reasons.forEach(reason => {
+
+                    const li =
+                        document.createElement("li");
+
+                    li.textContent =
+                        reason;
+
+                    reasonsList.appendChild(li);
+
+                });
+
+            }
+
+
+            // ------------------------------------------------
+            // Model metrics
+            // ------------------------------------------------
+
+            const metrics =
+                data.metrics || {};
+
+
+            setText(
+                "accuracy",
+                percent(
+                    Number(metrics.accuracy || 0) * 100
+                )
+            );
+
+
+            setText(
+                "totalEmails",
+                metrics.total_emails || 0
+            );
+
+
+            setText(
+                "phishingCount",
+                metrics.phishing_count || 0
+            );
+
+
+            setText(
+                "safeCount",
+                metrics.safe_count || 0
+            );
+
+
+            // ------------------------------------------------
+            // Confusion Matrix
+            // ------------------------------------------------
+
+            const matrix =
+                metrics.confusion_matrix;
+
+
+            if (
+                matrix &&
+                matrix.length >= 2
+            ) {
+
+                setText(
+                    "matrix00",
+                    matrix[0][0]
+                );
+
+                setText(
+                    "matrix01",
+                    matrix[0][1]
+                );
+
+                setText(
+                    "matrix10",
+                    matrix[1][0]
+                );
+
+                setText(
+                    "matrix11",
+                    matrix[1][1]
+                );
+
+            }
+
+
+            // ------------------------------------------------
+            // Show result
+            // ------------------------------------------------
+
+            result.classList.remove("hidden");
+
+
+            result.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+
+        } catch (err) {
+
+            console.error(err);
+
+
+            error.textContent =
+                err.message ||
+                "Unable to connect to the server.";
+
+
+            error.classList.remove(
+                "hidden"
+            );
+
+        } finally {
+
+            loading.classList.add(
+                "hidden"
+            );
+
+            analyzeBtn.disabled =
+                false;
+
+        }
+
+    });
+
+
+    // -------------------------------------------------------
+    // Clear
+    // -------------------------------------------------------
+
+    clearBtn.addEventListener(
+        "click",
+        () => {
+
+            emailInput.value = "";
+
+            result.classList.add(
+                "hidden"
+            );
+
+            error.classList.add(
+                "hidden"
+            );
+
+            emailInput.focus();
+
+        }
+    );
+
+});

@@ -1,41 +1,81 @@
 text,label
-"URGENT! Your account has been compromised. Verify your password immediately by clicking the link below.",Phishing
-"Congratulations! You have won a $1,000 prize. Click the link to claim your reward.",Phishing
-"Your bank account will be suspended unless you verify your identity immediately.",Phishing
-"Security alert! We detected unusual activity. Confirm your account information now.",Phishing
-"Your payment has failed. Click the link below to update your payment details.",Phishing
-"Your password is about to expire. Verify your account immediately.",Phishing
-"FINAL WARNING: Your account will be permanently suspended unless you verify your information.",Phishing
-"Click here immediately to receive your lottery winnings.",Phishing
-"Your online banking access has been restricted. Confirm your credentials now.",Phishing
-"Important security notice: verify your login details to avoid account suspension.",Phishing
-"Your package cannot be delivered. Confirm your address and payment information here.",Phishing
-"You have been selected for a special cash reward. Claim it before the offer expires.",Phishing
-"Your Microsoft account requires immediate verification. Sign in using the link below.",Phishing
-"Your email storage is full. Click here to prevent your account from being deleted.",Phishing
-"Unusual login detected. Confirm your password immediately to secure your account.",Phishing
-"Your Netflix subscription has been suspended. Update your billing information now.",Phishing
-"Congratulations, you are eligible for a free gift. Click the link to claim it.",Phishing
-"Your tax refund is waiting. Submit your bank information to receive the money.",Phishing
-"Your account has been selected for verification. Provide your credentials immediately.",Phishing
-"URGENT: Failure to verify your account today will result in permanent closure.",Phishing
-"Hi John, just checking whether we are still meeting tomorrow at 10 AM.",Safe
-"Hello team, please find the meeting agenda attached for today's discussion.",Safe
+"URGENT! Your bank account has been suspended. Click http://secure-bank-login.com immediately to verify your password.",Phishing
+"Congratulations! You have won a $1000 prize. Click http://claim-prize-now.com to claim your reward.",Phishing
+"Your PayPal account has been limited. Verify your account at http://paypal-security-check.com.",Phishing
+"Your email account will be deleted today. Confirm your password at http://email-verify-now.com.",Phishing
+"Important security alert! Someone accessed your account. Login at http://account-security-alert.com.",Phishing
+"Your Netflix subscription has expired. Update your payment information at http://netflix-billing-update.com.",Phishing
+"Your Microsoft account requires immediate verification. Visit http://microsoft-security-check.com.",Phishing
+"You have received a refund. Confirm your bank details at http://refund-verification.com.",Phishing
+"Your credit card has been blocked. Call immediately or verify at http://card-unblock-online.com.",Phishing
+"Final warning! Your account will be permanently closed unless you verify it at http://verify-account-now.com.",Phishing
+"Click http://free-gift-winner.com to receive your exclusive free gift.",Phishing
+"Your Amazon order is on hold. Confirm your payment details at http://amazon-order-confirm.com.",Phishing
+"Security warning! Your password has expired. Reset it now at http://password-reset-secure.com.",Phishing
+"Congratulations, you were selected for a cash reward. Claim it at http://cash-reward-claim.com.",Phishing
+"Your Gmail account has suspicious activity. Verify your identity at http://gmail-security-login.com.",Phishing
+"Your Apple ID has been locked. Unlock it by visiting http://apple-id-unlock.com.",Phishing
+"Your invoice is overdue. Open http://invoice-payment-alert.com to make payment immediately.",Phishing
+"You have won a lottery prize. Send your information to claim the money at http://lottery-prize-center.com.",Phishing
+"Your bank requires KYC verification. Submit your information at http://bank-kyc-update.com.",Phishing
+"Your account has unusual activity. Click http://secure-login-verification.com to protect your account.",Phishing
+"Dear customer, your account needs immediate verification. Please click http://verify-customer-account.com.",Phishing
+"Warning! Unauthorized transaction detected. Confirm your account at http://transaction-alert-security.com.",Phishing
+"Your package could not be delivered. Pay the small delivery fee at http://delivery-fee-payment.com.",Phishing
+"Your account password was changed. If this wasn't you, login at http://account-recovery-alert.com.",Phishing
+"Exclusive offer! You have been selected for a free smartphone. Claim it at http://free-phone-reward.com.",Phishing
+"Your online banking session has expired. Login again at http://online-banking-secure-login.com.",Phishing
+"Immediate action required! Verify your identity or your account will be disabled at http://identity-check-now.com.",Phishing
+"Your tax refund is ready. Submit your banking details at http://tax-refund-verification.com.",Phishing
+"Your social media account has been compromised. Secure it at http://social-account-security.com.",Phishing
+"Click http://urgent-account-verification.com immediately to avoid account suspension.",Phishing
+"Your Microsoft 365 password will expire today. Verify at http://office365-password-reset.com.",Phishing
+"Your bank detected suspicious activity. Confirm your login information at http://bank-security-alert.com.",Phishing
+"Congratulations! You have been chosen for a special reward. Click http://reward-confirmation.com.",Phishing
+"Your PayPal payment failed. Update your card details at http://paypal-payment-update.com.",Phishing
+"Your account has been selected for a security upgrade. Login at http://security-upgrade-account.com.",Phishing
+"Urgent invoice notification. Pay immediately at http://invoice-secure-payment.com.",Phishing
+"Your cloud storage is full. Upgrade now at http://cloud-storage-upgrade.com.",Phishing
+"Your account will be suspended within 24 hours. Confirm your credentials at http://account-confirmation-alert.com.",Phishing
+"Free vacation winner! Claim your holiday package at http://free-vacation-reward.com.",Phishing
+"Security notification: verify your banking password at http://secure-bank-verification.com.",Phishing
+"Hi John, just confirming that our project meeting is scheduled for tomorrow at 10 AM.",Safe
+"Hello Sarah, please find the meeting notes attached. We can discuss them during our next meeting.",Safe
+"Dear team, the weekly project meeting will be held on Monday at 9:30 AM.",Safe
 "Your electricity bill for this month is available in your customer portal.",Safe
-"Thank you for attending the training session. The recording is now available.",Safe
-"Reminder: your appointment is scheduled for Monday at 10 AM.",Safe
-"Your order has been shipped and is expected to arrive on Friday.",Safe
-"Please review the project report before our meeting tomorrow.",Safe
-"Your monthly bank statement is now available in your official banking application.",Safe
-"Hi Sarah, could you please send me the updated presentation?",Safe
-"Thank you for submitting your assignment. We have received it successfully.",Safe
-"Your password was changed successfully. If you made this change, no action is required.",Safe
-"Your payment of $45 was successfully completed.",Safe
-"Welcome to our newsletter. Here are this week's technology updates.",Safe
-"The team meeting has been moved from Tuesday to Wednesday.",Safe
-"Your flight reservation has been confirmed for December 15.",Safe
-"Please find the invoice for your recent purchase attached.",Safe
-"Your application has been received. We will contact you after review.",Safe
-"Thanks for your message. I will get back to you later today.",Safe
-"Your library books are due next Friday.",Safe
-"The college has announced the examination timetable for next semester.",Safe
+"Thank you for attending today's workshop. The presentation will be shared shortly.",Safe
+"Hi David, I wanted to remind you about our appointment tomorrow afternoon.",Safe
+"Your monthly bank statement is now available in your official online banking account.",Safe
+"Hello everyone, please remember to submit your assignments before Friday.",Safe
+"Your order has been successfully delivered. Thank you for shopping with us.",Safe
+"Dear customer, your payment of 2500 INR was successfully received.",Safe
+"Hi Anil, can we reschedule our meeting to Wednesday afternoon?",Safe
+"Please find the updated project report attached for your review.",Safe
+"Your course registration has been successfully completed.",Safe
+"Thank you for contacting our support team. We will respond within two business days.",Safe
+"Reminder: the office will be closed on Saturday and Sunday.",Safe
+"Hello Priya, congratulations on completing your training program.",Safe
+"Your appointment with the service center is confirmed for next Tuesday.",Safe
+"Dear student, your examination timetable has been published on the college portal.",Safe
+"Your library books are due next week. Please return them on time.",Safe
+"Hi team, today's deployment was completed successfully.",Safe
+"Your salary statement is available in the employee portal.",Safe
+"Hello, this is a reminder about your scheduled dentist appointment tomorrow.",Safe
+"Your flight booking has been confirmed. Please check the itinerary in your travel account.",Safe
+"Dear customer, your support ticket has been received and assigned to our service team.",Safe
+"Hi Kavitha, please review the document before our meeting tomorrow.",Safe
+"Your internet service payment was successfully processed.",Safe
+"Hello team, please join the project discussion at 3 PM today.",Safe
+"Your insurance policy document is available in your customer account.",Safe
+"Thank you for registering for the webinar. We look forward to seeing you there.",Safe
+"Your recent payment has been successfully completed. No further action is required.",Safe
+"Dear employee, your annual leave balance has been updated.",Safe
+"Hi Rahul, the presentation slides are ready for tomorrow's seminar.",Safe
+"Your parcel has been delivered successfully to the registered address.",Safe
+"Hello, your application has been received and is currently under review.",Safe
+"Dear customer, your subscription renewal was completed successfully.",Safe
+"Please remember to bring your identification card to the examination.",Safe
+"Hi team, the meeting minutes have been uploaded to the shared folder.",Safe
+"Your account profile information was successfully updated.",Safe
+"Thank you for your feedback. We appreciate your time and suggestions.",Safe
+"Dear student, your attendance record has been updated for this semester.",Safe

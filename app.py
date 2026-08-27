@@ -1,424 +1,535 @@
 from flask import Flask, render_template, request, jsonify
-import pickle
+from flask_cors import CORS
+
 import os
 import re
+import joblib
 
 
 app = Flask(__name__)
+CORS(app)
 
 
-MODEL_FILE = "model/model.pkl"
-VECTORIZER_FILE = "model/vectorizer.pkl"
-METRICS_FILE = "model/metrics.pkl"
+# ============================================================
+# MODEL PATH
+# ============================================================
+
+MODEL_PATH = os.path.join(
+    "model",
+    "model.pkl"
+)
+
+METRICS_PATH = os.path.join(
+    "model",
+    "metrics.pkl"
+)
 
 
-# ---------------------------------------------------------
+# ============================================================
 # LOAD MODEL
-# ---------------------------------------------------------
+# ============================================================
+
+model_data = None
+metrics = None
 
 try:
 
-    with open(MODEL_FILE, "rb") as f:
-        model = pickle.load(f)
+    model_data = joblib.load(MODEL_PATH)
 
-    with open(VECTORIZER_FILE, "rb") as f:
-        vectorizer = pickle.load(f)
+    metrics = joblib.load(METRICS_PATH)
 
-    with open(METRICS_FILE, "rb") as f:
-        metrics = pickle.load(f)
-
-    MODEL_LOADED = True
+    print("\nMachine learning model loaded successfully.")
 
 except Exception as e:
 
-    print("Model loading error:", e)
-
-    model = None
-    vectorizer = None
-    metrics = {}
-
-    MODEL_LOADED = False
+    print("\nWARNING: Machine learning model not loaded.")
+    print("ERROR:", e)
 
 
-# ---------------------------------------------------------
-# SUSPICIOUS KEYWORDS
-# ---------------------------------------------------------
+# ============================================================
+# SECURITY FEATURE ANALYSIS
+# ============================================================
 
-PHISHING_KEYWORDS = [
-    "verify your account",
-    "verify your identity",
-    "verify your password",
-    "confirm your password",
-    "confirm your identity",
-    "account suspended",
-    "account will be suspended",
-    "account has been suspended",
-    "account will be closed",
-    "account has been compromised",
-    "unusual activity",
-    "suspicious activity",
-    "security alert",
-    "urgent action",
-    "immediate action",
-    "act immediately",
-    "click here immediately",
-    "click the link",
-    "reset your password",
-    "update your payment",
-    "update billing information",
-    "claim your reward",
-    "claim your prize",
-    "you have won",
-    "lottery winner",
-    "cash reward",
-    "provide your credentials",
-    "confirm your credentials",
-    "bank information",
-    "password immediately"
-]
+def analyze_email_security(text):
 
+    text = str(text)
 
-# ---------------------------------------------------------
-# TEXT CLEANING
-# ---------------------------------------------------------
-
-def clean_text(text):
-
-    text = str(text).lower()
-
-    text = re.sub(
-        r"https?://\S+|www\.\S+",
-        " URL ",
-        text
-    )
-
-    text = re.sub(
-        r"\b[\w\.-]+@[\w\.-]+\.\w+\b",
-        " EMAIL ",
-        text
-    )
-
-    text = re.sub(r"\s+", " ", text)
-
-    return text.strip()
-
-
-# ---------------------------------------------------------
-# URL ANALYSIS
-# ---------------------------------------------------------
-
-def analyze_urls(text):
-
+    # Find URLs
     urls = re.findall(
-        r"https?://[^\s]+|www\.[^\s]+",
+        r'https?://[^\s<>"\']+|www\.[^\s<>"\']+',
         text,
         flags=re.IGNORECASE
     )
 
     suspicious_urls = []
 
-    suspicious_domains = [
-        "bit.ly",
-        "tinyurl.com",
-        "t.co",
-        "goo.gl",
-        "is.gd",
-        "ow.ly"
+    ip_urls = []
+
+    suspicious_words = [
+        "login",
+        "verify",
+        "secure",
+        "account",
+        "update",
+        "confirm",
+        "password",
+        "bank",
+        "payment",
+        "wallet",
+        "reward",
+        "claim",
+        "security"
     ]
 
     for url in urls:
 
-        url_lower = url.lower()
+        lower_url = url.lower()
 
-        for domain in suspicious_domains:
+        if any(
+            word in lower_url
+            for word in suspicious_words
+        ):
+            suspicious_urls.append(url)
 
-            if domain in url_lower:
+        if re.search(
+            r'https?://(?:\d{1,3}\.){3}\d{1,3}',
+            url
+        ):
+            ip_urls.append(url)
 
-                suspicious_urls.append(url)
-                break
+    # Email statistics
 
-    return urls, suspicious_urls
+    email_length = len(text)
 
+    exclamation_marks = text.count("!")
 
-# ---------------------------------------------------------
-# KEYWORD ANALYSIS
-# ---------------------------------------------------------
+    special_characters = len(
+        re.findall(
+            r'[^a-zA-Z0-9\s]',
+            text
+        )
+    )
 
-def analyze_keywords(text):
+    digits = sum(
+        character.isdigit()
+        for character in text
+    )
 
-    text_lower = text.lower()
+    # Average URL length
 
-    found = []
+    if urls:
 
-    for keyword in PHISHING_KEYWORDS:
+        avg_url_length = sum(
+            len(url)
+            for url in urls
+        ) / len(urls)
 
-        if keyword in text_lower:
+    else:
 
-            found.append(keyword)
+        avg_url_length = 0.0
 
-    return list(dict.fromkeys(found))
+    return {
 
+        "urls_found": len(urls),
 
-# ---------------------------------------------------------
-# MAIN ANALYSIS
-# ---------------------------------------------------------
+        "suspicious_urls": len(
+            suspicious_urls
+        ),
 
-def analyze_email(email):
+        "ip_urls": len(ip_urls),
 
-    if not MODEL_LOADED:
+        "email_length": email_length,
 
-        return {
-            "success": False,
-            "error": "Model is not loaded. Run train_model.py first."
-        }
+        "avg_url_length": round(
+            avg_url_length,
+            2
+        ),
 
-    if not email or not email.strip():
+        "exclamation_marks":
+            exclamation_marks,
 
-        return {
-            "success": False,
-            "error": "Please enter an email."
-        }
+        "special_characters":
+            special_characters,
 
-    cleaned = clean_text(email)
+        "digits":
+            digits,
 
-    # -----------------------------------------------
-    # ML MODEL
-    # -----------------------------------------------
+        "urls":
+            urls,
 
-    vectorized = vectorizer.transform([cleaned])
+        "suspicious_url_list":
+            suspicious_urls,
 
-    prediction = model.predict(vectorized)[0]
-
-    probabilities = model.predict_proba(vectorized)[0]
-
-    classes = list(model.classes_)
-
-    probability_map = {
-        classes[i]: float(probabilities[i])
-        for i in range(len(classes))
+        "ip_url_list":
+            ip_urls
     }
 
-    ml_phishing_probability = probability_map.get(
+
+# ============================================================
+# HOME PAGE
+# ============================================================
+
+@app.route("/")
+def home():
+
+    return render_template(
+        "index.html"
+    )
+
+
+# ============================================================
+# PREDICTION API
+# ============================================================
+
+@app.route(
+    "/predict",
+    methods=["POST"]
+)
+def predict():
+
+    # Check model
+
+    if model_data is None:
+
+        return jsonify({
+            "success": False,
+            "error":
+                "Machine learning model is not loaded."
+        }), 500
+
+
+    # Get request data
+
+    data = request.get_json(
+        silent=True
+    )
+
+    if not data:
+
+        return jsonify({
+            "success": False,
+            "error":
+                "No email data received."
+        }), 400
+
+
+    email_text = data.get(
+        "email",
+        ""
+    )
+
+
+    # Validate email
+
+    if not email_text.strip():
+
+        return jsonify({
+            "success": False,
+            "error":
+                "Please enter an email."
+        }), 400
+
+
+    # ========================================================
+    # GET MODEL COMPONENTS
+    # ========================================================
+
+    model = model_data["model"]
+
+    word_vectorizer = model_data[
+        "word_vectorizer"
+    ]
+
+    char_vectorizer = model_data[
+        "char_vectorizer"
+    ]
+
+
+    # ========================================================
+    # TEXT FEATURES
+    # ========================================================
+
+    word_features = word_vectorizer.transform(
+        [email_text]
+    )
+
+    char_features = char_vectorizer.transform(
+        [email_text]
+    )
+
+
+    # ========================================================
+    # SECURITY FEATURES
+    # ========================================================
+
+    security = analyze_email_security(
+        email_text
+    )
+
+
+    security_values = [[
+
+        security["urls_found"],
+
+        security["suspicious_urls"],
+
+        security["ip_urls"],
+
+        security["email_length"],
+
+        security["exclamation_marks"],
+
+        security["digits"],
+
+        security["special_characters"],
+
+        0,
+
+        sum(
+            email_text.lower().count(keyword)
+            for keyword in [
+                "urgent",
+                "immediately",
+                "verify",
+                "suspended",
+                "password",
+                "account",
+                "click",
+                "winner",
+                "prize",
+                "claim",
+                "security",
+                "blocked",
+                "limited",
+                "confirm",
+                "payment",
+                "refund"
+            ]
+        )
+
+    ]]
+
+
+    from scipy.sparse import csr_matrix
+
+    security_features = csr_matrix(
+        security_values
+    )
+
+
+    # ========================================================
+    # COMBINE FEATURES
+    # ========================================================
+
+    from scipy.sparse import hstack
+
+    features = hstack([
+
+        word_features,
+
+        char_features,
+
+        security_features
+
+    ])
+
+
+    # ========================================================
+    # PREDICTION
+    # ========================================================
+
+    prediction = model.predict(
+        features
+    )[0]
+
+
+    probabilities = model.predict_proba(
+        features
+    )[0]
+
+
+    classes = model.classes_
+
+
+    probability_data = {}
+
+    for class_name, probability in zip(
+        classes,
+        probabilities
+    ):
+
+        probability_data[
+            class_name
+        ] = round(
+            float(probability) * 100,
+            2
+        )
+
+
+    # Make sure both labels exist
+
+    phishing_probability = probability_data.get(
         "Phishing",
-        0
+        0.0
     )
 
-    ml_safe_probability = probability_map.get(
+    safe_probability = probability_data.get(
         "Safe",
-        0
+        0.0
     )
 
-    # -----------------------------------------------
-    # ADDITIONAL ANALYSIS
-    # -----------------------------------------------
 
-    urls, suspicious_urls = analyze_urls(email)
+    confidence = max(
+        phishing_probability,
+        safe_probability
+    )
 
-    keywords = analyze_keywords(email)
 
-    # -----------------------------------------------
-    # FINAL DECISION
-    #
-    # ML remains the main classifier.
-    # Additional indicators are used only when
-    # the ML result is uncertain.
-    # -----------------------------------------------
-
-    final_prediction = prediction
+    # ========================================================
+    # REASONS
+    # ========================================================
 
     reasons = []
 
-    # Strong phishing signals
-    strong_phishing = (
-        len(suspicious_urls) > 0
-        or len(keywords) >= 2
-    )
 
-    # If model is uncertain and there are strong
-    # phishing indicators, classify as phishing.
-    if (
-        prediction == "Safe"
-        and ml_phishing_probability >= 0.40
-        and strong_phishing
-    ):
-        final_prediction = "Phishing"
-
-    # If the ML model is strongly confident that
-    # the email is safe, do not override it merely
-    # because one common word appears.
-    elif (
-        prediction == "Phishing"
-        and ml_phishing_probability < 0.60
-        and not strong_phishing
-    ):
-        final_prediction = "Safe"
-
-    # -----------------------------------------------
-    # REASONS
-    # -----------------------------------------------
-
-    if suspicious_urls:
+    if security["suspicious_urls"] > 0:
 
         reasons.append(
-            "Suspicious shortened URL detected."
+            "Suspicious URL detected."
         )
 
-    if urls and not suspicious_urls:
+
+    if security["ip_urls"] > 0:
 
         reasons.append(
-            f"{len(urls)} URL(s) detected in the email."
+            "IP-based URL detected."
         )
 
-    if keywords:
 
-        if len(keywords) == 1:
+    if security["exclamation_marks"] >= 2:
+
+        reasons.append(
+            "Multiple exclamation marks detected."
+        )
+
+
+    lower_email = email_text.lower()
+
+
+    urgent_words = [
+        "urgent",
+        "immediately",
+        "final warning",
+        "action required"
+    ]
+
+
+    for word in urgent_words:
+
+        if word in lower_email:
 
             reasons.append(
-                f"Suspicious phrase detected: '{keywords[0]}'."
+                f"Urgency indicator detected: '{word}'."
+            )
+
+            break
+
+
+    sensitive_words = [
+        "password",
+        "bank details",
+        "credit card",
+        "verify your account",
+        "login"
+    ]
+
+
+    for word in sensitive_words:
+
+        if word in lower_email:
+
+            reasons.append(
+                f"Sensitive information request detected: '{word}'."
+            )
+
+            break
+
+
+    if not reasons:
+
+        if prediction == "Safe":
+
+            reasons.append(
+                "No major phishing indicators detected."
             )
 
         else:
 
             reasons.append(
-                f"{len(keywords)} suspicious phrases detected."
+                "The machine learning model detected suspicious textual patterns."
             )
 
-    if final_prediction == "Phishing":
 
-        if not reasons:
+    # ========================================================
+    # RESPONSE
+    # ========================================================
 
-            reasons.append(
-                "The machine-learning model detected phishing-like language patterns."
-            )
-
-    else:
-
-        if not reasons:
-
-            reasons.append(
-                "No strong phishing indicators were detected."
-            )
-
-    # -----------------------------------------------
-    # CONFIDENCE
-    # -----------------------------------------------
-
-    confidence = max(
-        ml_phishing_probability,
-        ml_safe_probability
-    ) * 100
-
-    return {
+    return jsonify({
 
         "success": True,
 
-        "prediction": final_prediction,
+        "prediction":
+            prediction,
 
-        "confidence": round(confidence, 2),
+        "confidence":
+            round(
+                confidence,
+                2
+            ),
 
-        "phishing_probability": round(
-            ml_phishing_probability * 100,
-            2
-        ),
+        "phishing_probability":
+            phishing_probability,
 
-        "safe_probability": round(
-            ml_safe_probability * 100,
-            2
-        ),
+        "safe_probability":
+            safe_probability,
 
-        "urls_found": len(urls),
+        "security":
+            security,
 
-        "suspicious_urls": suspicious_urls,
+        "reasons":
+            reasons,
 
-        "suspicious_keywords": keywords,
+        "metrics":
+            metrics
 
-        "reasons": reasons
-    }
-
-
-# ---------------------------------------------------------
-# HOME PAGE
-# ---------------------------------------------------------
-
-@app.route("/")
-def home():
-
-    return render_template("index.html")
-
-
-# ---------------------------------------------------------
-# ANALYZE API
-# ---------------------------------------------------------
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-
-    try:
-
-        data = request.get_json()
-
-        if not data:
-
-            return jsonify({
-                "success": False,
-                "error": "No data received."
-            }), 400
-
-        email = data.get("email", "")
-
-        result = analyze_email(email)
-
-        return jsonify(result)
-
-    except Exception as e:
-
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-# ---------------------------------------------------------
-# METRICS API
-# ---------------------------------------------------------
-
-@app.route("/metrics")
-def get_metrics():
-
-    if not MODEL_LOADED:
-
-        return jsonify({
-            "success": False,
-            "error": "Model is not trained."
-        }), 500
-
-    return jsonify({
-        "success": True,
-        "metrics": metrics
     })
 
 
-# ---------------------------------------------------------
-# HEALTH CHECK
-# ---------------------------------------------------------
-
-@app.route("/health")
-def health():
-
-    return jsonify({
-        "status": "running",
-        "model_loaded": MODEL_LOADED
-    })
-
-
-# ---------------------------------------------------------
+# ============================================================
 # RUN
-# ---------------------------------------------------------
+# ============================================================
 
 if __name__ == "__main__":
+
+    print("\n")
+    print("=" * 60)
+    print("        PHISHING EMAIL DETECTOR")
+    print("=" * 60)
+
+    print(
+        "\nOpen your browser:"
+    )
+
+    print(
+        "http://127.0.0.1:5000/"
+    )
+
+    print(
+        "\nPress CTRL+C to stop the server."
+    )
 
     app.run(
         host="0.0.0.0",
         port=5000,
-        debug=True
+        debug=False
     )

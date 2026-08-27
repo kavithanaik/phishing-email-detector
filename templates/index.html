@@ -5,266 +5,705 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <title>Phishing Email Detector</title>
+    <title>
+        Phishing Email Detector
+    </title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
 
 </head>
 
+
 <body>
 
-<div class="container">
+<div class="page">
 
-    <header>
 
-        <h1>Phishing Email Detector</h1>
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="hero">
+
+        <div class="shield">
+            🛡️
+        </div>
+
+        <h1>
+            Phishing Email Detector
+        </h1>
 
         <p>
             Machine Learning Based Email Security Analysis
         </p>
 
+        <div class="status">
+            <span class="status-dot"></span>
+            AI Security System Online
+        </div>
+
     </header>
 
 
-    <!-- EMAIL ANALYZER -->
+
+    <!-- =====================================================
+         EMAIL INPUT
+    ====================================================== -->
 
     <section class="card">
 
-        <h2>Analyze Email</h2>
+        <div class="section-title">
+
+            <div class="title-icon">
+                ✉️
+            </div>
+
+            <div>
+
+                <h2>
+                    Analyze an Email
+                </h2>
+
+                <p>
+                    Paste the email content below to check
+                    whether it is phishing or safe.
+                </p>
+
+            </div>
+
+        </div>
+
 
         <textarea
             id="emailText"
-            placeholder="Paste the complete email here..."
+            placeholder="Paste the complete email message here...
+
+Example:
+Dear Customer,
+
+Your account requires immediate verification.
+Please verify your account using the link below.
+
+Thank you."
         ></textarea>
 
-        <button
-            id="analyzeButton"
-            onclick="analyzeEmail()">
 
-            Analyze Email
+        <div class="button-row">
 
-        </button>
+            <button
+                id="analyzeBtn"
+                class="analyze-btn"
+            >
+                🔍 Analyze Email
+            </button>
 
-        <div id="loading"
-             class="loading hidden">
 
-            Analyzing email...
+            <button
+                id="clearBtn"
+                class="clear-btn"
+                type="button"
+            >
+                🗑️ Clear
+            </button>
 
         </div>
 
-    </section>
-
-
-    <!-- RESULT -->
-
-    <section
-        id="resultCard"
-        class="card hidden">
-
-        <h2>Analysis Result</h2>
 
         <div
-            id="result"
-            class="result">
+            id="loading"
+            class="loading hidden"
+        >
+            <div class="spinner"></div>
 
+            <span>
+                Analyzing email with machine learning model...
+            </span>
         </div>
 
 
-        <div class="probability-container">
-
-            <div>
-
-                <span>Phishing Probability</span>
-
-                <strong id="phishingProbability">
-                    0%
-                </strong>
-
-            </div>
-
-            <div>
-
-                <span>Safe Probability</span>
-
-                <strong id="safeProbability">
-                    0%
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <h3>Detection Reasons</h3>
-
-        <ul id="reasons"></ul>
-
-
-        <h3>Suspicious Keywords</h3>
-
-        <div id="keywords"></div>
-
-
-        <h3>URLs Found</h3>
-
-        <div id="urls"></div>
+        <div
+            id="error"
+            class="error-message hidden"
+        ></div>
 
     </section>
 
 
-    <!-- MODEL PERFORMANCE -->
 
-    <section class="card">
+    <!-- =====================================================
+         PREDICTION RESULT
+    ====================================================== -->
 
-        <h2>Model Performance</h2>
+    <section
+        id="result"
+        class="hidden"
+    >
 
-        <div class="metrics-grid">
 
-            <div class="metric">
+        <!-- =================================================
+             MAIN PREDICTION
+        ================================================== -->
 
-                <span>Accuracy</span>
+        <div class="prediction-card card">
 
-                <strong id="accuracy">--</strong>
-
+            <div class="prediction-icon">
+                🔐
             </div>
 
-            <div class="metric">
 
-                <span>Precision</span>
+            <div class="prediction-content">
 
-                <strong id="precision">--</strong>
+                <p class="small-title">
+                    MACHINE LEARNING PREDICTION
+                </p>
 
-            </div>
+                <h2 id="prediction">
+                    -
+                </h2>
 
-            <div class="metric">
+                <p>
+                    Prediction Confidence
+                </p>
 
-                <span>Recall</span>
-
-                <strong id="recall">--</strong>
-
-            </div>
-
-            <div class="metric">
-
-                <span>F1 Score</span>
-
-                <strong id="f1">--</strong>
+                <div
+                    id="confidence"
+                    class="confidence"
+                >
+                    0.00%
+                </div>
 
             </div>
 
         </div>
 
+
+
+        <!-- =================================================
+             PROBABILITY
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    📊
+                </div>
+
+                <div>
+
+                    <h2>
+                        Prediction Probability
+                    </h2>
+
+                    <p>
+                        Probability calculated by the trained
+                        machine learning model.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="probability-grid">
+
+
+                <div class="probability phishing-box">
+
+                    <div class="probability-icon">
+                        🔴
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Phishing
+                        </span>
+
+                        <strong
+                            id="phishingProbability"
+                        >
+                            0.00%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="probability safe-box">
+
+                    <div class="probability-icon">
+                        🟢
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Safe
+                        </span>
+
+                        <strong
+                            id="safeProbability"
+                        >
+                            0.00%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             EMAIL SECURITY ANALYSIS
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    🔎
+                </div>
+
+                <div>
+
+                    <h2>
+                        Email Security Analysis
+                    </h2>
+
+                    <p>
+                        Security features extracted from
+                        the submitted email.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="security-grid">
+
+
+                <div class="security-item">
+
+                    <span>
+                        🔗 URLs Found
+                    </span>
+
+                    <strong id="urlsFound">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        ⚠️ Suspicious URLs
+                    </span>
+
+                    <strong id="suspiciousUrls">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        🌐 IP-based URLs
+                    </span>
+
+                    <strong id="ipUrls">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        📝 Email Length
+                    </span>
+
+                    <strong id="emailLength">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        📏 Avg URL Length
+                    </span>
+
+                    <strong id="avgUrlLength">
+                        0.0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        ❗ Exclamation Marks
+                    </span>
+
+                    <strong id="exclamationMarks">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        #️⃣ Special Characters
+                    </span>
+
+                    <strong id="specialCharacters">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <span>
+                        🔢 Digits
+                    </span>
+
+                    <strong id="digits">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             DETECTED URLS
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    🔗
+                </div>
+
+                <div>
+
+                    <h2>
+                        Detected URLs
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="urlList"
+                class="url-list"
+            >
+
+                <p class="empty-message">
+                    No URLs detected in this email.
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             REASONS
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    🧠
+                </div>
+
+                <div>
+
+                    <h2>
+                        Security Indicators
+                    </h2>
+
+                    <p>
+                        Indicators identified during analysis.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <ul id="reasons">
+
+                <li>
+                    No analysis performed yet.
+                </li>
+
+            </ul>
+
+        </div>
+
+
+
+        <!-- =================================================
+             MODEL PERFORMANCE
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    📈
+                </div>
+
+                <div>
+
+                    <h2>
+                        Model Performance
+                    </h2>
+
+                    <p>
+                        Performance information from the
+                        trained dataset.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="metrics-grid">
+
+
+                <div class="metric">
+
+                    <span>
+                        Accuracy
+                    </span>
+
+                    <strong id="accuracy">
+                        0%
+                    </strong>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <span>
+                        Total Emails
+                    </span>
+
+                    <strong id="totalEmails">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <span>
+                        Phishing Emails
+                    </span>
+
+                    <strong id="phishingCount">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <span>
+                        Safe Emails
+                    </span>
+
+                    <strong id="safeCount">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             CONFUSION MATRIX
+        ================================================== -->
+
+        <div class="card">
+
+            <div class="section-title">
+
+                <div class="title-icon">
+                    🧮
+                </div>
+
+                <div>
+
+                    <h2>
+                        Confusion Matrix
+                    </h2>
+
+                    <p>
+                        Actual versus predicted classifications.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="matrix-wrapper">
+
+                <table class="confusion">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Actual / Predicted
+                            </th>
+
+                            <th>
+                                Phishing
+                            </th>
+
+                            <th>
+                                Safe
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        <tr>
+
+                            <th>
+                                Phishing
+                            </th>
+
+                            <td id="matrix00">
+                                0
+                            </td>
+
+                            <td id="matrix01">
+                                0
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Safe
+                            </th>
+
+                            <td id="matrix10">
+                                0
+                            </td>
+
+                            <td id="matrix11">
+                                0
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
     </section>
 
 
-    <!-- CONFUSION MATRIX -->
 
-    <section class="card">
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
 
-        <h2>Confusion Matrix</h2>
+    <footer>
+
+        <div class="footer-line"></div>
 
         <p>
-            Rows = Actual Class |
-            Columns = Predicted Class
+            🛡️ Phishing Email Detector
         </p>
 
-        <table class="confusion">
+        <span>
+            Machine Learning • TF-IDF • Logistic Regression
+        </span>
 
-            <tr>
+    </footer>
 
-                <th></th>
-
-                <th>Predicted Safe</th>
-
-                <th>Predicted Phishing</th>
-
-            </tr>
-
-            <tr>
-
-                <th>Actual Safe</th>
-
-                <td id="cm00">--</td>
-
-                <td id="cm01">--</td>
-
-            </tr>
-
-            <tr>
-
-                <th>Actual Phishing</th>
-
-                <td id="cm10">--</td>
-
-                <td id="cm11">--</td>
-
-            </tr>
-
-        </table>
-
-    </section>
-
-
-    <!-- DATASET -->
-
-    <section class="card">
-
-        <h2>Dataset Information</h2>
-
-        <div class="dataset-grid">
-
-            <div>
-
-                <span>Total Emails</span>
-
-                <strong id="totalEmails">--</strong>
-
-            </div>
-
-            <div>
-
-                <span>Phishing Emails</span>
-
-                <strong id="phishingEmails">--</strong>
-
-            </div>
-
-            <div>
-
-                <span>Safe Emails</span>
-
-                <strong id="safeEmails">--</strong>
-
-            </div>
-
-            <div>
-
-                <span>Training Emails</span>
-
-                <strong id="trainingEmails">--</strong>
-
-            </div>
-
-            <div>
-
-                <span>Testing Emails</span>
-
-                <strong id="testingEmails">--</strong>
-
-            </div>
-
-        </div>
-
-    </section>
 
 </div>
 
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+<!-- =========================================================
+     JAVASCRIPT
+========================================================== -->
+
+<script
+    src="{{ url_for('static', filename='script.js') }}"
+></script>
+
 
 </body>
 
