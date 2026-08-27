@@ -1,4 +1,3 @@
-import os
 import re
 import joblib
 
@@ -6,27 +5,29 @@ from scipy.sparse import hstack, csr_matrix
 
 
 # ============================================================
-# MODEL PATH
+# LOAD MODEL
 # ============================================================
 
-MODEL_PATH = os.path.join(
-    "model",
-    "model.pkl"
-)
+MODEL_PATH = "model/model.pkl"
+
+data = joblib.load(MODEL_PATH)
+
+model = data["model"]
+
+word_vectorizer = data["word_vectorizer"]
+
+char_vectorizer = data["char_vectorizer"]
 
 
 # ============================================================
-# SECURITY FEATURE EXTRACTION
+# SECURITY FEATURES
 # ============================================================
 
-def extract_security_features(text):
+def security_features(text):
 
     text = str(text)
-    lower = text.lower()
 
-    # --------------------------------------------------------
-    # URLs
-    # --------------------------------------------------------
+    lower = text.lower()
 
     urls = re.findall(
         r'https?://[^\s<>"\']+|www\.[^\s<>"\']+',
@@ -36,11 +37,7 @@ def extract_security_features(text):
 
     url_count = len(urls)
 
-    # --------------------------------------------------------
-    # Suspicious URLs
-    # --------------------------------------------------------
-
-    suspicious_url_words = [
+    suspicious_words = [
         "login",
         "verify",
         "verification",
@@ -65,13 +62,9 @@ def extract_security_features(text):
 
         if any(
             word in url.lower()
-            for word in suspicious_url_words
+            for word in suspicious_words
         ):
             suspicious_url_count += 1
-
-    # --------------------------------------------------------
-    # IP-based URLs
-    # --------------------------------------------------------
 
     ip_url_count = 0
 
@@ -83,10 +76,6 @@ def extract_security_features(text):
         ):
             ip_url_count += 1
 
-    # --------------------------------------------------------
-    # Basic email statistics
-    # --------------------------------------------------------
-
     email_length = len(text)
 
     exclamation_count = text.count("!")
@@ -94,8 +83,8 @@ def extract_security_features(text):
     question_count = text.count("?")
 
     digit_count = sum(
-        character.isdigit()
-        for character in text
+        c.isdigit()
+        for c in text
     )
 
     special_count = len(
@@ -105,21 +94,19 @@ def extract_security_features(text):
         )
     )
 
-    # --------------------------------------------------------
-    # Uppercase words
-    # --------------------------------------------------------
-
     uppercase_words = sum(
+
         1
+
         for word in text.split()
-        if len(word) >= 3 and word.isupper()
+
+        if len(word) >= 3
+        and word.isupper()
+
     )
 
-    # --------------------------------------------------------
-    # Phishing keywords
-    # --------------------------------------------------------
-
     phishing_keywords = [
+
         "urgent",
         "immediately",
         "action required",
@@ -153,22 +140,22 @@ def extract_security_features(text):
         "credit card",
         "billing",
         "credentials"
+
     ]
 
     keyword_count = sum(
+
         lower.count(keyword)
+
         for keyword in phishing_keywords
+
     )
 
-    # --------------------------------------------------------
-    # Sensitive information requests
-    # --------------------------------------------------------
+    sensitive_words = [
 
-    sensitive_requests = [
         "enter your password",
         "enter your username",
         "provide your password",
-        "provide your bank",
         "bank details",
         "credit card details",
         "card number",
@@ -177,18 +164,18 @@ def extract_security_features(text):
         "confirm your account",
         "update your payment",
         "submit your information"
+
     ]
 
     sensitive_count = sum(
+
         lower.count(word)
-        for word in sensitive_requests
+        for word in sensitive_words
+
     )
 
-    # --------------------------------------------------------
-    # Urgency indicators
-    # --------------------------------------------------------
-
     urgency_words = [
+
         "urgent",
         "immediately",
         "now",
@@ -197,14 +184,18 @@ def extract_security_features(text):
         "final warning",
         "last chance",
         "action required"
+
     ]
 
     urgency_count = sum(
+
         lower.count(word)
         for word in urgency_words
+
     )
 
     return [
+
         url_count,
         suspicious_url_count,
         ip_url_count,
@@ -217,73 +208,42 @@ def extract_security_features(text):
         keyword_count,
         sensitive_count,
         urgency_count
+
     ]
 
 
 # ============================================================
-# LOAD MODEL
-# ============================================================
-
-print("\n")
-print("=" * 70)
-print("              PHISHING EMAIL DETECTOR")
-print("=" * 70)
-
-try:
-
-    data = joblib.load(
-        MODEL_PATH
-    )
-
-    model = data["model"]
-
-    word_vectorizer = data[
-        "word_vectorizer"
-    ]
-
-    char_vectorizer = data[
-        "char_vectorizer"
-    ]
-
-    print("\nMachine learning model loaded successfully.")
-
-except Exception as e:
-
-    print("\nERROR: Could not load the model.")
-    print("Reason:", e)
-    exit()
-
-
-# ============================================================
-# PREDICTION FUNCTION
+# PREDICT FUNCTION
 # ============================================================
 
 def predict_email(email):
 
-    # Word TF-IDF
+    # Word features
     word_features = word_vectorizer.transform(
         [email]
     )
 
-    # Character TF-IDF
+    # Character features
     char_features = char_vectorizer.transform(
         [email]
     )
 
     # Security features
-    security = extract_security_features(
-        email
+    sec = security_features(email)
+
+    security_matrix = csr_matrix(
+        [sec]
     )
 
-    security_features = csr_matrix(
-        [security]
-    )
-
-    # Combine all features
+    # Combine
     features = hstack([
+
         word_features,
+
         char_features,
-        security_features
+
+        security_matrix
+
     ])
 
     # Prediction
@@ -291,49 +251,52 @@ def predict_email(email):
         features
     )[0]
 
-    # Probabilities
     probabilities = model.predict_proba(
         features
     )[0]
 
     classes = model.classes_
 
-    probability_data = {}
+    probability_dict = {
 
-    for class_name, probability in zip(
-        classes,
-        probabilities
-    ):
+        cls: float(prob)
 
-        probability_data[class_name] = (
-            float(probability) * 100
+        for cls, prob in zip(
+            classes,
+            probabilities
         )
 
-    phishing_probability = probability_data.get(
-        "Phishing",
-        0.0
+    }
+
+    phishing = (
+        probability_dict.get(
+            "Phishing",
+            0
+        ) * 100
     )
 
-    safe_probability = probability_data.get(
-        "Safe",
-        0.0
+    safe = (
+        probability_dict.get(
+            "Safe",
+            0
+        ) * 100
     )
 
     confidence = max(
-        phishing_probability,
-        safe_probability
+        phishing,
+        safe
     )
 
     return (
         prediction,
-        phishing_probability,
-        safe_probability,
+        phishing,
+        safe,
         confidence
     )
 
 
 # ============================================================
-# PHISHING EMAIL
+# TEST 1 - PHISHING
 # ============================================================
 
 phishing_email = """
@@ -355,35 +318,42 @@ Bank Security Team
 """
 
 
-print("\n")
+print()
 print("=" * 70)
 print("PHISHING EMAIL")
 print("=" * 70)
 
 print()
+print(phishing_email)
 
-# Print complete phishing email
-print(phishing_email.strip())
-
-print()
-print("-" * 70)
-
-# Predict phishing email
 prediction, phishing, safe, confidence = predict_email(
     phishing_email
 )
 
-print()
-print("Prediction:", prediction)
-print(f"Phishing:   {phishing:.2f}%")
-print(f"Safe:       {safe:.2f}%")
-print(f"Confidence: {confidence:.2f}%")
+print("-" * 70)
+
+print(
+    "Prediction:",
+    prediction
+)
+
+print(
+    f"Phishing:   {phishing:.2f}%"
+)
+
+print(
+    f"Safe:       {safe:.2f}%"
+)
+
+print(
+    f"Confidence: {confidence:.2f}%"
+)
 
 print("-" * 70)
 
 
 # ============================================================
-# SAFE EMAIL
+# TEST 2 - SAFE
 # ============================================================
 
 safe_email = """
@@ -401,38 +371,35 @@ Project Coordinator
 """
 
 
-print("\n")
+print()
 print("=" * 70)
 print("SAFE EMAIL")
 print("=" * 70)
 
 print()
+print(safe_email)
 
-# Print complete safe email
-print(safe_email.strip())
-
-print()
-print("-" * 70)
-
-# Predict safe email
 prediction, phishing, safe, confidence = predict_email(
     safe_email
 )
 
-print()
-print("Prediction:", prediction)
-print(f"Phishing:   {phishing:.2f}%")
-print(f"Safe:       {safe:.2f}%")
-print(f"Confidence: {confidence:.2f}%")
-
 print("-" * 70)
 
+print(
+    "Prediction:",
+    prediction
+)
 
-# ============================================================
-# END
-# ============================================================
+print(
+    f"Phishing:   {phishing:.2f}%"
+)
 
-print("\n")
-print("=" * 70)
-print("                    TEST COMPLETE")
-print("=" * 70)
+print(
+    f"Safe:       {safe:.2f}%"
+)
+
+print(
+    f"Confidence: {confidence:.2f}%"
+)
+
+print("-" * 70)

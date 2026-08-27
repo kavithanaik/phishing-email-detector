@@ -1572,3 +1572,91 @@ footer span {
     }
 
 }
+
+
+/* =========================================================
+   PHISHING RESULT - RED
+   ========================================================= */
+
+.prediction-card.phishing-result {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 45, 75, 0.18),
+            rgba(45, 10, 20, 0.95)
+        );
+
+    border-color:
+        rgba(255, 60, 85, 0.45);
+
+    box-shadow:
+        0 0 35px rgba(255, 40, 70, 0.12);
+}
+
+/* Phishing title */
+.prediction-card.phishing-result .prediction-content h2 {
+    color: #ff3f5f;
+}
+
+/* Phishing confidence */
+.prediction-card.phishing-result .confidence {
+    background: none;
+    color: #ff3f5f;
+
+    -webkit-text-fill-color: #ff3f5f;
+}
+
+/* Phishing icon */
+.prediction-card.phishing-result .prediction-icon {
+    background:
+        rgba(255, 45, 70, 0.15);
+
+    border-color:
+        rgba(255, 60, 85, 0.35);
+
+    color: #ff3f5f;
+
+    box-shadow:
+        0 0 30px rgba(255, 40, 70, 0.18);
+}
+
+
+/* =========================================================
+   SAFE RESULT - GREEN
+   ========================================================= */
+
+.prediction-card.safe-result {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(30, 210, 155, 0.14),
+            rgba(8, 30, 25, 0.95)
+        );
+
+    border-color:
+        rgba(40, 220, 170, 0.35);
+
+    box-shadow:
+        0 0 35px rgba(40, 220, 170, 0.10);
+}
+
+.prediction-card.safe-result .prediction-content h2 {
+    color: #45e0ae;
+}
+
+.prediction-card.safe-result .confidence {
+    background: none;
+    color: #45e0ae;
+
+    -webkit-text-fill-color: #45e0ae;
+}
+
+.prediction-card.safe-result .prediction-icon {
+    background:
+        rgba(40, 220, 170, 0.12);
+
+    border-color:
+        rgba(40, 220, 170, 0.30);
+
+    color: #45e0ae;
+}

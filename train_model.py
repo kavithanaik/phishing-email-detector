@@ -8,7 +8,7 @@ from scipy.sparse import hstack, csr_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import FeatureUnion
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -27,7 +27,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 
 print("=" * 70)
-print("       PHISHING EMAIL DETECTOR - MODEL TRAINING")
+print("          PHISHING EMAIL DETECTOR - MODEL TRAINING")
 print("=" * 70)
 
 
@@ -37,10 +37,10 @@ print("=" * 70)
 
 df = pd.read_csv(DATASET)
 
-print("\nDataset information")
-print("-" * 70)
+if "text" not in df.columns or "label" not in df.columns:
 
-print("Total emails:", len(df))
+    print("ERROR: email.csv must contain text,label")
+    exit()
 
 
 # ============================================================
@@ -67,15 +67,11 @@ df["label"] = (
 df["label"] = df["label"].replace({
 
     "phishing": "Phishing",
-
     "safe": "Safe",
-
     "legitimate": "Safe",
-
     "legit": "Safe"
 
 })
-
 
 df = df[
     df["label"].isin(
@@ -83,23 +79,30 @@ df = df[
     )
 ]
 
-
 df = df.drop_duplicates(
     subset=["text"]
 )
 
 
-print("\nAfter cleaning:")
-print("Total emails:", len(df))
+print()
+print("Dataset information")
+print("-" * 70)
 
-print("\nClass distribution:")
+print(
+    "Total emails:",
+    len(df)
+)
+
+print()
+print("Class distribution:")
+
 print(
     df["label"].value_counts()
 )
 
 
 # ============================================================
-# SECURITY FEATURE EXTRACTION
+# SECURITY FEATURES
 # ============================================================
 
 def security_features(text):
@@ -108,21 +111,30 @@ def security_features(text):
 
     lower = text.lower()
 
+    # --------------------------------------------------------
     # URLs
+    # --------------------------------------------------------
+
     urls = re.findall(
+
         r'https?://[^\s<>"\']+|www\.[^\s<>"\']+',
+
         text,
+
         flags=re.IGNORECASE
+
     )
 
     url_count = len(urls)
 
-    # Suspicious URLs
+    # --------------------------------------------------------
+    # Suspicious URL count
+    # --------------------------------------------------------
+
     suspicious_words = [
 
         "login",
         "verify",
-        "verification",
         "secure",
         "account",
         "update",
@@ -150,62 +162,83 @@ def security_features(text):
 
             suspicious_url_count += 1
 
-
+    # --------------------------------------------------------
     # IP URL
+    # --------------------------------------------------------
+
     ip_url_count = 0
 
     for url in urls:
 
         if re.search(
+
             r'https?://(?:\d{1,3}\.){3}\d{1,3}',
+
             url
+
         ):
 
             ip_url_count += 1
 
-
+    # --------------------------------------------------------
     # Length
-    email_length = len(text)
+    # --------------------------------------------------------
 
+    length = len(text)
 
+    # --------------------------------------------------------
     # Exclamation
+    # --------------------------------------------------------
+
     exclamation_count = text.count("!")
 
-
-    # Question marks
-    question_count = text.count("?")
-
-
+    # --------------------------------------------------------
     # Digits
+    # --------------------------------------------------------
+
     digit_count = sum(
-        c.isdigit()
-        for c in text
+
+        character.isdigit()
+
+        for character in text
+
     )
 
-
+    # --------------------------------------------------------
     # Special characters
+    # --------------------------------------------------------
+
     special_count = len(
+
         re.findall(
+
             r'[^a-zA-Z0-9\s]',
+
             text
+
         )
+
     )
 
-
+    # --------------------------------------------------------
     # Uppercase words
-    uppercase_words = sum(
+    # --------------------------------------------------------
+
+    uppercase_count = sum(
 
         1
 
         for word in text.split()
 
-        if len(word) >= 3
+        if len(word) > 2
         and word.isupper()
 
     )
 
+    # --------------------------------------------------------
+    # Suspicious keywords
+    # --------------------------------------------------------
 
-    # Phishing keywords
     phishing_keywords = [
 
         "urgent",
@@ -222,9 +255,7 @@ def security_features(text):
         "winner",
         "prize",
         "claim",
-        "security alert",
-        "unauthorized",
-        "transaction",
+        "security",
         "blocked",
         "limited",
         "confirm",
@@ -232,9 +263,7 @@ def security_features(text):
         "refund",
         "bank",
         "login",
-        "sign in",
         "unlock",
-        "expire",
         "expired",
         "24 hours",
         "kyc",
@@ -244,7 +273,7 @@ def security_features(text):
 
     ]
 
-    keyword_count = sum(
+    suspicious_keyword_count = sum(
 
         lower.count(keyword)
 
@@ -252,90 +281,31 @@ def security_features(text):
 
     )
 
-
-    # Sensitive information
-    sensitive_words = [
-
-        "enter your password",
-        "enter your username",
-        "provide your password",
-        "bank details",
-        "credit card details",
-        "card number",
-        "login credentials",
-        "verify your identity",
-        "confirm your account",
-        "update your payment",
-        "submit your information"
-
-    ]
-
-    sensitive_count = sum(
-
-        lower.count(word)
-
-        for word in sensitive_words
-
-    )
-
-
-    # Urgency
-    urgency_words = [
-
-        "urgent",
-        "immediately",
-        "now",
-        "as soon as possible",
-        "within 24 hours",
-        "final warning",
-        "last chance",
-        "action required"
-
-    ]
-
-    urgency_count = sum(
-
-        lower.count(word)
-
-        for word in urgency_words
-
-    )
-
+    # ========================================================
+    # EXACTLY 9 FEATURES
+    # ========================================================
 
     return [
 
         url_count,
-
         suspicious_url_count,
-
         ip_url_count,
-
-        email_length,
-
+        length,
         exclamation_count,
-
-        question_count,
-
         digit_count,
-
         special_count,
-
-        uppercase_words,
-
-        keyword_count,
-
-        sensitive_count,
-
-        urgency_count
+        uppercase_count,
+        suspicious_keyword_count
 
     ]
 
 
 # ============================================================
-# CREATE SECURITY FEATURES
+# CREATE SECURITY MATRIX
 # ============================================================
 
-print("\nExtracting security features...")
+print()
+print("Extracting security features...")
 
 security_matrix = [
 
@@ -354,14 +324,17 @@ security_matrix = csr_matrix(
 # TRAIN TEST SPLIT
 # ============================================================
 
-X_train_text, X_test_text, \
-y_train, y_test, \
-X_train_sec, X_test_sec = train_test_split(
+(
+    X_train_text,
+    X_test_text,
+    y_train,
+    y_test,
+    X_train_sec,
+    X_test_sec
+) = train_test_split(
 
     df["text"],
-
     df["label"],
-
     security_matrix,
 
     test_size=0.20,
@@ -373,7 +346,11 @@ X_train_sec, X_test_sec = train_test_split(
 )
 
 
-print("\nTraining emails:", len(X_train_text))
+print()
+print(
+    "Training emails:",
+    len(X_train_text)
+)
 
 print(
     "Testing emails :",
@@ -385,7 +362,8 @@ print(
 # WORD TF-IDF
 # ============================================================
 
-print("\nCreating WORD TF-IDF...")
+print()
+print("Creating WORD TF-IDF features...")
 
 word_vectorizer = TfidfVectorizer(
 
@@ -393,13 +371,13 @@ word_vectorizer = TfidfVectorizer(
 
     stop_words="english",
 
-    ngram_range=(1, 3),
+    ngram_range=(1, 2),
 
     sublinear_tf=True,
 
     min_df=1,
 
-    max_features=100000
+    max_features=50000
 
 )
 
@@ -417,19 +395,21 @@ X_test_word = word_vectorizer.transform(
 # CHARACTER TF-IDF
 # ============================================================
 
-print("Creating CHARACTER TF-IDF...")
+print(
+    "Creating CHARACTER TF-IDF features..."
+)
 
 char_vectorizer = TfidfVectorizer(
 
     analyzer="char",
 
-    ngram_range=(2, 6),
+    ngram_range=(3, 5),
 
     sublinear_tf=True,
 
     min_df=1,
 
-    max_features=100000
+    max_features=50000
 
 )
 
@@ -444,32 +424,30 @@ X_test_char = char_vectorizer.transform(
 
 
 # ============================================================
-# COMBINE FEATURES
+# COMBINE
 # ============================================================
 
 X_train = hstack([
 
     X_train_word,
-
     X_train_char,
-
     X_train_sec
 
 ])
 
-
 X_test = hstack([
 
     X_test_word,
-
     X_test_char,
-
     X_test_sec
 
 ])
 
 
-print("\nFinal feature shape:")
+print()
+print(
+    "Final training feature shape:"
+)
 
 print(
     X_train.shape
@@ -477,20 +455,42 @@ print(
 
 
 # ============================================================
-# TRAIN MODEL
+# LOGISTIC REGRESSION
 # ============================================================
 
-print("\nTraining Logistic Regression...")
+print()
+print(
+    "Training Logistic Regression..."
+)
 
-model = LogisticRegression(
+base_model = LogisticRegression(
 
     max_iter=5000,
 
-    C=10,
+    C=5.0,
 
     class_weight="balanced",
 
     solver="liblinear"
+
+)
+
+
+# ============================================================
+# CALIBRATION
+# ============================================================
+
+print(
+    "Calibrating prediction probabilities..."
+)
+
+model = CalibratedClassifierCV(
+
+    estimator=base_model,
+
+    method="sigmoid",
+
+    cv=3
 
 )
 
@@ -505,19 +505,20 @@ model.fit(
 
 
 # ============================================================
-# TEST
+# EVALUATION
 # ============================================================
 
 y_pred = model.predict(
     X_test
 )
 
-
 accuracy = accuracy_score(
-    y_test,
-    y_pred
-)
 
+    y_test,
+
+    y_pred
+
+)
 
 matrix = confusion_matrix(
 
@@ -533,23 +534,26 @@ matrix = confusion_matrix(
 )
 
 
-print("\n")
+print()
 print("=" * 70)
 print("                    MODEL PERFORMANCE")
 print("=" * 70)
 
+print()
 
 print(
-    f"\nAccuracy: {accuracy * 100:.2f}%"
+    f"Accuracy: {accuracy * 100:.2f}%"
 )
 
+print()
 
-print("\nConfusion Matrix:")
+print("Confusion Matrix:")
 
 print(matrix)
 
+print()
 
-print("\nClassification Report:")
+print("Classification Report:")
 
 print(
 
@@ -577,7 +581,8 @@ print(
 
 model_data = {
 
-    "model": model,
+    "model":
+        model,
 
     "word_vectorizer":
         word_vectorizer,
@@ -626,7 +631,10 @@ metrics = {
         ),
 
     "feature_type":
-        "Word TF-IDF + Character TF-IDF + Security Features"
+        "Word TF-IDF + Character TF-IDF + 9 Security Features",
+
+    "probability_calibration":
+        "Sigmoid"
 
 }
 
@@ -659,25 +667,31 @@ joblib.dump(
 )
 
 
-# ============================================================
-# COMPLETE
-# ============================================================
-
-print("\n")
+print()
 print("=" * 70)
 print("                    TRAINING COMPLETE")
 print("=" * 70)
 
-print("\nCreated:")
+print()
 
-print("model/model.pkl")
-
-print("model/metrics.pkl")
-
-print("model/security_features.pkl")
+print("Created:")
 
 print(
-    f"\nFinal model accuracy: "
+    "model/model.pkl"
+)
+
+print(
+    "model/metrics.pkl"
+)
+
+print(
+    "model/security_features.pkl"
+)
+
+print()
+
+print(
+    f"Final model accuracy: "
     f"{accuracy * 100:.2f}%"
 )
 

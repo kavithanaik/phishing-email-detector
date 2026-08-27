@@ -92,22 +92,48 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
             }
 
+// ------------------------------------------------
+// Prediction Result Color
+// ------------------------------------------------
 
-            // ------------------------------------------------
-            // Prediction
-            // ------------------------------------------------
+setText(
+    "prediction",
+    data.prediction
+);
 
-            setText(
-                "prediction",
-                data.prediction
-            );
+setText(
+    "confidence",
+    percent(data.confidence)
+);
 
 
-            setText(
-                "confidence",
-                percent(data.confidence)
-            );
+// Get prediction card
+const predictionCard =
+    document.querySelector(".prediction-card");
 
+
+// Remove previous result classes
+predictionCard.classList.remove(
+    "phishing-result",
+    "safe-result"
+);
+
+
+// Apply correct color
+if (
+    String(data.prediction).toLowerCase() === "phishing"
+) {
+
+    predictionCard.classList.add(
+        "phishing-result"
+    );
+
+} else {
+
+    predictionCard.classList.add(
+        "safe-result"
+    );
+}
 
             // ------------------------------------------------
             // Probability

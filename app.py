@@ -8,30 +8,36 @@ import joblib
 from scipy.sparse import hstack, csr_matrix
 
 
+# ============================================================
+# FLASK APP
+# ============================================================
+
 app = Flask(__name__)
 CORS(app)
 
 
 # ============================================================
-# PATHS
+# BASE DIRECTORY
 # ============================================================
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
-MODEL_DIR = os.path.join(
-    BASE_DIR,
-    "model"
-)
+
+# ============================================================
+# MODEL PATHS
+# ============================================================
 
 MODEL_PATH = os.path.join(
-    MODEL_DIR,
+    BASE_DIR,
+    "model",
     "model.pkl"
 )
 
 METRICS_PATH = os.path.join(
-    MODEL_DIR,
+    BASE_DIR,
+    "model",
     "metrics.pkl"
 )
 
@@ -41,8 +47,7 @@ METRICS_PATH = os.path.join(
 # ============================================================
 
 model_data = None
-metrics = {}
-
+metrics = None
 
 try:
 
@@ -50,100 +55,39 @@ try:
         MODEL_PATH
     )
 
-    if os.path.exists(
+    metrics = joblib.load(
         METRICS_PATH
-    ):
-
-        metrics = joblib.load(
-            METRICS_PATH
-        )
-
-    print(
-        "\nMachine learning model loaded successfully."
     )
 
-    print(
-        "Model classes:",
-        model_data["model"].classes_
-    )
+    print()
+    print("=" * 70)
+    print("       PHISHING EMAIL DETECTOR")
+    print("=" * 70)
+
+    print()
+    print("Machine learning model loaded successfully.")
 
 except Exception as e:
 
-    print(
-        "\nWARNING: Machine learning model not loaded."
-    )
-
-    print(
-        "ERROR:",
-        e
-    )
+    print()
+    print("WARNING: Machine learning model not loaded.")
+    print("ERROR:", e)
 
 
 # ============================================================
-# SECURITY ANALYSIS
+# SECURITY FEATURE EXTRACTION
 # ============================================================
 
-SUSPICIOUS_URL_WORDS = [
-
-    "login",
-    "verify",
-    "secure",
-    "account",
-    "update",
-    "confirm",
-    "password",
-    "bank",
-    "payment",
-    "wallet",
-    "reward",
-    "claim",
-    "security",
-    "suspended",
-    "blocked",
-    "unlock"
-
-]
-
-
-SUSPICIOUS_KEYWORDS = [
-
-    "urgent",
-    "immediately",
-    "verify",
-    "suspended",
-    "password",
-    "account",
-    "click",
-    "winner",
-    "prize",
-    "claim",
-    "security",
-    "blocked",
-    "limited",
-    "confirm",
-    "payment",
-    "refund",
-    "bank",
-    "login",
-    "credential",
-    "credentials",
-    "expire",
-    "expired",
-    "action required",
-    "final warning",
-    "unauthorized",
-    "transaction",
-    "kyc"
-
-]
-
-
-def analyze_email_security(text):
+def security_features(text):
 
     text = str(text)
 
-    lower_text = text.lower()
+    lower = text.lower()
 
+
+    # --------------------------------------------------------
+    # URL DETECTION
+    # --------------------------------------------------------
 
     urls = re.findall(
 
@@ -155,85 +99,99 @@ def analyze_email_security(text):
 
     )
 
-
-    suspicious_urls = []
-
-    ip_urls = []
+    url_count = len(urls)
 
 
-    total_url_length = 0
+    # --------------------------------------------------------
+    # SUSPICIOUS URL
+    # --------------------------------------------------------
 
+    suspicious_words = [
+
+        "login",
+        "verify",
+        "secure",
+        "account",
+        "update",
+        "confirm",
+        "password",
+        "bank",
+        "payment",
+        "wallet",
+        "reward",
+        "claim",
+        "security",
+        "unlock",
+        "signin"
+
+    ]
+
+    suspicious_url_count = 0
 
     for url in urls:
 
-        clean_url = url.rstrip(
-            ".,!?;:)"
-        )
-
-        lower_url = clean_url.lower()
-
-        total_url_length += len(
-            clean_url
-        )
-
-
         if any(
 
-            word in lower_url
+            word in url.lower()
 
-            for word in SUSPICIOUS_URL_WORDS
+            for word in suspicious_words
 
         ):
 
-            suspicious_urls.append(
-                clean_url
-            )
+            suspicious_url_count += 1
 
+
+    # --------------------------------------------------------
+    # IP URL
+    # --------------------------------------------------------
+
+    ip_url_count = 0
+
+    for url in urls:
 
         if re.search(
 
             r'https?://(?:\d{1,3}\.){3}\d{1,3}',
 
-            clean_url
+            url
 
         ):
 
-            ip_urls.append(
-                clean_url
-            )
+            ip_url_count += 1
 
 
-    if urls:
+    # --------------------------------------------------------
+    # EMAIL LENGTH
+    # --------------------------------------------------------
 
-        average_url_length = (
-
-            total_url_length
-            /
-            len(urls)
-
-        )
-
-    else:
-
-        average_url_length = 0.0
+    length = len(text)
 
 
-    email_length = len(text)
+    # --------------------------------------------------------
+    # EXCLAMATION MARKS
+    # --------------------------------------------------------
 
     exclamation_count = text.count("!")
 
-    question_count = text.count("?")
+
+    # --------------------------------------------------------
+    # DIGITS
+    # --------------------------------------------------------
 
     digit_count = sum(
 
-        c.isdigit()
+        character.isdigit()
 
-        for c in text
+        for character in text
 
     )
 
 
-    special_character_count = len(
+    # --------------------------------------------------------
+    # SPECIAL CHARACTERS
+    # --------------------------------------------------------
+
+    special_count = len(
 
         re.findall(
 
@@ -246,6 +204,10 @@ def analyze_email_security(text):
     )
 
 
+    # --------------------------------------------------------
+    # UPPERCASE WORDS
+    # --------------------------------------------------------
+
     uppercase_count = sum(
 
         1
@@ -253,72 +215,167 @@ def analyze_email_security(text):
         for word in text.split()
 
         if len(word) > 2
+
         and word.isupper()
 
     )
 
 
-    suspicious_keyword_count = sum(
+    # --------------------------------------------------------
+    # SUSPICIOUS KEYWORDS
+    # --------------------------------------------------------
 
-        lower_text.count(keyword)
-
-        for keyword in SUSPICIOUS_KEYWORDS
-
-    )
-
-
-    sensitive_phrases = [
-
-        "password",
-        "bank details",
-        "credit card",
-        "card details",
-        "login information",
-        "login credentials",
-        "personal information",
-        "verify your account",
-        "confirm your identity",
-        "security code",
-        "one time password",
-        "otp"
-
-    ]
-
-
-    sensitive_count = sum(
-
-        1
-
-        for phrase in sensitive_phrases
-
-        if phrase in lower_text
-
-    )
-
-
-    urgency_phrases = [
+    phishing_keywords = [
 
         "urgent",
         "immediately",
-        "within 24 hours",
-        "final warning",
         "action required",
-        "expires today",
-        "account will be closed",
-        "account will be suspended"
+        "final warning",
+        "verify",
+        "verification",
+        "suspended",
+        "suspension",
+        "password",
+        "account",
+        "click",
+        "winner",
+        "prize",
+        "claim",
+        "security",
+        "blocked",
+        "limited",
+        "confirm",
+        "payment",
+        "refund",
+        "bank",
+        "login",
+        "unlock",
+        "expired",
+        "24 hours",
+        "kyc",
+        "credit card",
+        "billing",
+        "credentials"
+
+    ]
+
+    suspicious_keyword_count = sum(
+
+        lower.count(keyword)
+
+        for keyword in phishing_keywords
+
+    )
+
+
+    # ========================================================
+    # EXACT SAME 9 FEATURES AS train_model.py
+    # ========================================================
+
+    return [
+
+        url_count,
+
+        suspicious_url_count,
+
+        ip_url_count,
+
+        length,
+
+        exclamation_count,
+
+        digit_count,
+
+        special_count,
+
+        uppercase_count,
+
+        suspicious_keyword_count
 
     ]
 
 
-    urgency_count = sum(
+# ============================================================
+# EMAIL SECURITY DISPLAY INFORMATION
+# ============================================================
 
-        1
+def analyze_email_security(text):
 
-        for phrase in urgency_phrases
+    text = str(text)
 
-        if phrase in lower_text
+    urls = re.findall(
+
+        r'https?://[^\s<>"\']+|www\.[^\s<>"\']+',
+
+        text,
+
+        flags=re.IGNORECASE
 
     )
+
+    suspicious_words = [
+
+        "login",
+        "verify",
+        "secure",
+        "account",
+        "update",
+        "confirm",
+        "password",
+        "bank",
+        "payment",
+        "wallet",
+        "reward",
+        "claim",
+        "security",
+        "unlock",
+        "signin"
+
+    ]
+
+    suspicious_urls = []
+
+    ip_urls = []
+
+    for url in urls:
+
+        if any(
+
+            word in url.lower()
+
+            for word in suspicious_words
+
+        ):
+
+            suspicious_urls.append(url)
+
+
+        if re.search(
+
+            r'https?://(?:\d{1,3}\.){3}\d{1,3}',
+
+            url
+
+        ):
+
+            ip_urls.append(url)
+
+
+    if urls:
+
+        avg_url_length = (
+
+            sum(
+                len(url)
+                for url in urls
+            )
+            / len(urls)
+
+        )
+
+    else:
+
+        avg_url_length = 0.0
 
 
     return {
@@ -333,37 +390,30 @@ def analyze_email_security(text):
             len(ip_urls),
 
         "email_length":
-            email_length,
+            len(text),
 
         "avg_url_length":
             round(
-                average_url_length,
+                avg_url_length,
                 2
             ),
 
         "exclamation_marks":
-            exclamation_count,
-
-        "question_marks":
-            question_count,
+            text.count("!"),
 
         "special_characters":
-            special_character_count,
+            len(
+                re.findall(
+                    r'[^a-zA-Z0-9\s]',
+                    text
+                )
+            ),
 
         "digits":
-            digit_count,
-
-        "uppercase_words":
-            uppercase_count,
-
-        "suspicious_keywords":
-            suspicious_keyword_count,
-
-        "sensitive_requests":
-            sensitive_count,
-
-        "urgency_indicators":
-            urgency_count,
+            sum(
+                character.isdigit()
+                for character in text
+            ),
 
         "urls":
             urls,
@@ -378,7 +428,7 @@ def analyze_email_security(text):
 
 
 # ============================================================
-# HOME
+# HOME PAGE
 # ============================================================
 
 @app.route("/")
@@ -390,7 +440,7 @@ def home():
 
 
 # ============================================================
-# PREDICT
+# PREDICTION API
 # ============================================================
 
 @app.route(
@@ -411,353 +461,422 @@ def predict():
         }), 500
 
 
-    data = request.get_json(
-        silent=True
-    )
+    try:
+
+        # ----------------------------------------------------
+        # GET JSON
+        # ----------------------------------------------------
+
+        data = request.get_json(
+            silent=True
+        )
+
+        if not data:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "No email data received."
+
+            }), 400
 
 
-    if not data:
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "No email data received."
-
-        }), 400
-
-
-    email_text = str(
-
-        data.get(
+        email_text = data.get(
             "email",
             ""
         )
 
-    ).strip()
+
+        if not isinstance(
+            email_text,
+            str
+        ):
+
+            email_text = str(
+                email_text
+            )
 
 
-    if not email_text:
+        if not email_text.strip():
 
-        return jsonify({
+            return jsonify({
 
-            "success": False,
+                "success": False,
 
-            "error":
-                "Please enter an email."
+                "error":
+                    "Please enter an email."
 
-        }), 400
+            }), 400
 
 
-    try:
+        # ----------------------------------------------------
+        # LOAD MODEL COMPONENTS
+        # ----------------------------------------------------
 
         model = model_data[
             "model"
         ]
 
-        word_vectorizer = (
-            model_data[
-                "word_vectorizer"
-            ]
+        word_vectorizer = model_data[
+            "word_vectorizer"
+        ]
+
+        char_vectorizer = model_data[
+            "char_vectorizer"
+        ]
+
+
+        # ----------------------------------------------------
+        # WORD TF-IDF
+        # ----------------------------------------------------
+
+        word_features = (
+
+            word_vectorizer.transform(
+
+                [email_text]
+
+            )
+
         )
 
-        char_vectorizer = (
-            model_data[
-                "char_vectorizer"
-            ]
+
+        # ----------------------------------------------------
+        # CHARACTER TF-IDF
+        # ----------------------------------------------------
+
+        char_features = (
+
+            char_vectorizer.transform(
+
+                [email_text]
+
+            )
+
         )
 
-        security_scaler = (
-            model_data[
-                "security_scaler"
-            ]
+
+        # ----------------------------------------------------
+        # SECURITY FEATURES
+        # ----------------------------------------------------
+
+        security_values = security_features(
+            email_text
         )
+
+
+        security_matrix = csr_matrix(
+
+            [security_values]
+
+        )
+
+
+        # ----------------------------------------------------
+        # COMBINE FEATURES
+        # ----------------------------------------------------
+
+        features = hstack([
+
+            word_features,
+
+            char_features,
+
+            security_matrix
+
+        ])
+
+
+        # ----------------------------------------------------
+        # CHECK FEATURE COUNT
+        # ----------------------------------------------------
+
+        expected_features = (
+
+            getattr(
+                model,
+                "n_features_in_",
+                None
+            )
+
+        )
+
+        actual_features = (
+            features.shape[1]
+        )
+
+
+        print()
+        print(
+            "Expected features:",
+            expected_features
+        )
+
+        print(
+            "Actual features:",
+            actual_features
+        )
+
+
+        # ----------------------------------------------------
+        # PREDICTION
+        # ----------------------------------------------------
+
+        prediction = model.predict(
+
+            features
+
+        )[0]
+
+
+        probabilities = model.predict_proba(
+
+            features
+
+        )[0]
+
+
+        classes = model.classes_
+
+
+        # ----------------------------------------------------
+        # PROBABILITIES
+        # ----------------------------------------------------
+
+        probability_data = {}
+
+
+        for class_name, probability in zip(
+
+            classes,
+
+            probabilities
+
+        ):
+
+            probability_data[
+                class_name
+            ] = (
+
+                float(probability)
+                * 100
+
+            )
+
+
+        phishing_probability = (
+
+            probability_data.get(
+                "Phishing",
+                0.0
+            )
+
+        )
+
+
+        safe_probability = (
+
+            probability_data.get(
+                "Safe",
+                0.0
+            )
+
+        )
+
+
+        confidence = max(
+
+            phishing_probability,
+
+            safe_probability
+
+        )
+
+
+        # ----------------------------------------------------
+        # SECURITY ANALYSIS
+        # ----------------------------------------------------
+
+        security = (
+
+            analyze_email_security(
+
+                email_text
+
+            )
+
+        )
+
+
+        # ----------------------------------------------------
+        # REASONS
+        # ----------------------------------------------------
+
+        reasons = []
+
+        lower_email = (
+            email_text.lower()
+        )
+
+
+        if security[
+            "suspicious_urls"
+        ] > 0:
+
+            reasons.append(
+                "Suspicious URL detected."
+            )
+
+
+        if security[
+            "ip_urls"
+        ] > 0:
+
+            reasons.append(
+                "IP-based URL detected."
+            )
+
+
+        if security[
+            "exclamation_marks"
+        ] >= 2:
+
+            reasons.append(
+                "Multiple exclamation marks detected."
+            )
+
+
+        urgency_words = [
+
+            "urgent",
+            "immediately",
+            "final warning",
+            "action required",
+            "within 24 hours"
+
+        ]
+
+
+        for word in urgency_words:
+
+            if word in lower_email:
+
+                reasons.append(
+
+                    "Urgency indicator detected: "
+                    + word
+
+                )
+
+                break
+
+
+        sensitive_words = [
+
+            "password",
+            "bank details",
+            "credit card",
+            "verify your account",
+            "login credentials",
+            "enter your username"
+
+        ]
+
+
+        for word in sensitive_words:
+
+            if word in lower_email:
+
+                reasons.append(
+
+                    "Sensitive information request detected: "
+                    + word
+
+                )
+
+                break
+
+
+        if not reasons:
+
+            if prediction == "Safe":
+
+                reasons.append(
+
+                    "No major phishing indicators detected."
+
+                )
+
+            else:
+
+                reasons.append(
+
+                    "Suspicious textual patterns detected."
+
+                )
+
+
+        # ----------------------------------------------------
+        # RESPONSE
+        # ----------------------------------------------------
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "prediction":
+                prediction,
+
+            "confidence":
+                round(
+                    confidence,
+                    2
+                ),
+
+            "phishing_probability":
+                round(
+                    phishing_probability,
+                    2
+                ),
+
+            "safe_probability":
+                round(
+                    safe_probability,
+                    2
+                ),
+
+            "security":
+                security,
+
+            "reasons":
+                reasons,
+
+            "metrics":
+                metrics
+
+        })
 
 
     except Exception as e:
 
+        print()
+        print("=" * 70)
+        print("PREDICTION ERROR")
+        print("=" * 70)
+        print(e)
+
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "error":
-                f"Model components missing: {str(e)}"
+                str(e)
 
         }), 500
-
-
-    # ========================================================
-    # TEXT FEATURES
-    # ========================================================
-
-    word_features = (
-
-        word_vectorizer.transform(
-
-            [email_text]
-
-        )
-
-    )
-
-
-    char_features = (
-
-        char_vectorizer.transform(
-
-            [email_text]
-
-        )
-
-    )
-
-
-    # ========================================================
-    # SECURITY
-    # ========================================================
-
-    security = analyze_email_security(
-        email_text
-    )
-
-
-    security_values = [[
-
-        security["urls_found"],
-
-        security["suspicious_urls"],
-
-        security["ip_urls"],
-
-        security["email_length"],
-
-        security["exclamation_marks"],
-
-        security["question_marks"],
-
-        security["digits"],
-
-        security["special_characters"],
-
-        security["uppercase_words"],
-
-        security["suspicious_keywords"],
-
-        security["sensitive_requests"],
-
-        security["urgency_indicators"],
-
-        security["avg_url_length"]
-
-    ]]
-
-
-    security_features = csr_matrix(
-        security_values
-    )
-
-
-    security_features = (
-        security_scaler.transform(
-            security_features
-        )
-    )
-
-
-    # ========================================================
-    # COMBINE
-    # ========================================================
-
-    features = hstack([
-
-        word_features,
-
-        char_features,
-
-        security_features
-
-    ]).tocsr()
-
-
-    # ========================================================
-    # PREDICTION
-    # ========================================================
-
-    prediction = model.predict(
-        features
-    )[0]
-
-
-    probabilities = model.predict_proba(
-        features
-    )[0]
-
-
-    classes = model.classes_
-
-
-    probability_data = {}
-
-
-    for class_name, probability in zip(
-
-        classes,
-
-        probabilities
-
-    ):
-
-        probability_data[
-            str(class_name)
-        ] = round(
-
-            float(probability) * 100,
-
-            2
-
-        )
-
-
-    phishing_probability = (
-
-        probability_data.get(
-            "Phishing",
-            0.0
-        )
-
-    )
-
-
-    safe_probability = (
-
-        probability_data.get(
-            "Safe",
-            0.0
-        )
-
-    )
-
-
-    confidence = max(
-
-        phishing_probability,
-
-        safe_probability
-
-    )
-
-
-    # ========================================================
-    # REASONS
-    # ========================================================
-
-    reasons = []
-
-
-    if security[
-        "suspicious_urls"
-    ] > 0:
-
-        reasons.append(
-            "Suspicious URL detected."
-        )
-
-
-    if security[
-        "ip_urls"
-    ] > 0:
-
-        reasons.append(
-            "IP-based URL detected."
-        )
-
-
-    if security[
-        "exclamation_marks"
-    ] >= 2:
-
-        reasons.append(
-            "Multiple exclamation marks detected."
-        )
-
-
-    if security[
-        "sensitive_requests"
-    ] > 0:
-
-        reasons.append(
-            "Request for sensitive information detected."
-        )
-
-
-    if security[
-        "urgency_indicators"
-    ] > 0:
-
-        reasons.append(
-            "Urgency indicators detected."
-        )
-
-
-    if security[
-        "suspicious_keywords"
-    ] > 0:
-
-        reasons.append(
-            "Suspicious security-related keywords detected."
-        )
-
-
-    if not reasons:
-
-        if prediction == "Safe":
-
-            reasons.append(
-                "No major phishing indicators detected."
-            )
-
-        else:
-
-            reasons.append(
-                "The machine-learning model detected suspicious textual patterns."
-            )
-
-
-    # ========================================================
-    # RESPONSE
-    # ========================================================
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "prediction":
-            str(prediction),
-
-        "confidence":
-            round(
-                confidence,
-                2
-            ),
-
-        "phishing_probability":
-            phishing_probability,
-
-        "safe_probability":
-            safe_probability,
-
-        "security":
-            security,
-
-        "reasons":
-            reasons,
-
-        "metrics":
-            metrics
-
-    })
 
 
 # ============================================================
@@ -766,23 +885,21 @@ def predict():
 
 if __name__ == "__main__":
 
-    print("\n")
+    print()
     print("=" * 70)
-    print("             PHISHING EMAIL DETECTOR")
+    print("          PHISHING EMAIL DETECTOR")
     print("=" * 70)
 
+    print()
     print(
-        "\nOpen:"
+        "Open browser:"
     )
 
     print(
         "http://127.0.0.1:5000/"
     )
 
-    print(
-        "\nPress CTRL+C to stop."
-    )
-
+    print()
 
     app.run(
 
